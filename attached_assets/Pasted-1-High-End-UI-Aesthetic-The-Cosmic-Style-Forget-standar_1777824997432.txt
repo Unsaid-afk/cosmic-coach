@@ -1,0 +1,65 @@
+1. High-End UI Aesthetic: The "Cosmic" Style
+Forget standard tables and charts. Think of the data visualized like a constellation or a sophisticated audio waveform map.
+
+Background: An extremely subtle, flowing obsidian-to-midnight-blue gradient.
+
+The "Vibe Monitor": Instead of a static chart, use an animated line graph that glows based on the speaker's energy. High energy = electric blue; Monotone = soft amber.
+
+Transcript Interaction: As the video plays, the transcription text doesn't just bold; the specific sounds (like 'um' or 'ah') are literally erased from the text view with a "smoke" animation to visually represent their removal.
+
+3D Gaze Analysis: A small 3D model of a human head in the corner that mimics the user’s eye contact. It turns red and looks away when the speaker loses focus, making the feedback incredibly tactile.
+
+2. Creative "Next-Generation" Features
+These features move beyond simple mistakes and focus on persuasion and structure.
+
+The "Persuasion Stack" Analysis (Content Layer):
+The AI doesn't just check for flow; it analyzes the persuasive structure.
+
+Problem-Agitation-Solution (PAS) Check: Did they properly define the user's problem before pitching the solution?
+
+The "Rule of Three" Detector: Did they use logical threes (e.g., "Fast, Reliable, Secure") to make points memorable?
+
+Storytelling Arc: Did they integrate an anecdote, or is it just dry data?
+
+The "Impact Score" Timeline:
+An overlaid line graph showing how impactful the speech was second-by-second.
+
+The AI flags moments it predicts the audience would check their phones (indicated by a tiny phone icon on the timeline).
+
+It highlights "Golden Moments"—sentences that would make a great 30-second marketing clip.
+
+Audience Simulation:
+This is the showstopper. A panel of AI-generated personas (The Skeptic, The Busy Exec, The Novice) who give feedback from their unique perspectives.
+
+The Skeptic: "You claimed this would save money, but you didn’t provide the supporting data until 15 minutes later."
+
+The Busy Exec: "Your intro took too long. I would have tuned out at 04:30."
+
+Slide Effectiveness Score (The Tufte Check):
+Analyzes the uploaded presentation deck against visual design principles.
+
+Flags slides with too much text (e.g., "This slide contains 200 words. Aim for 30.").
+
+Detects low-contrast fonts that are hard to read.
+
+Suggests where a simple icon could replace a paragraph.
+
+3. The "Artistic Data" Prompt
+This prompt is designed for a top-tier design engine to visualize the interface.
+
+Prompt: A hyper-realistic, volumetric render of a future-tech data analysis console for public speakers. The aesthetic is ultra-minimalist, inspired by Glassmorphism and the film 'Oblivion.' A large, frameless video player floats in the center, subtly illuminated by a soft, neon blue glow. The background is a dark obsidian void with floating, geometric light-data particles.
+
+Below the video is a complex, holographic timeline visualization. This timeline isn't flat; it uses flowing, glowing audio waves (teal for verbal clarity, purple for energy levels) that peak and trough based on the presentation’s impact.
+
+On the right side, data is represented by minimalist, translucent panels. Instead of bars, there are dynamic, 3D concentric rings visualizing "Eye Contact" and "Confidence Score." A sidebar titled "Executive Coaching" uses typography that looks elegantly etched in light, listing "Persuasion Alerts" with a tiny, flickering caution icon.
+
+The overall palette is deep space black, frosted glass, and highly saturated electric blue and violet accents. The scene has shallow depth of field, focused on the central interface. Cinematographic lighting, Unreal Engine 5 style.
+
+Building This Interface (Your Framework)
+Since you are using React and Node.js, you'll need advanced animation libraries to achieve this:
+
+Framing and Motion: Use Framer Motion or GSAP. This is how you make panels slide in smoothly, make the "heatmaps" flow, and handle the "smoke" animation when erasing filler words.
+
+Chart Visualization: Recharts or Nivo are excellent, but you will need to apply SVG filter masks and gradients to get that glowing, "holographic" effect.
+
+Haptic Timeline: You will need to build the custom timeline yourself by combining the video player’s <timeupdate> event with data visual components rendered on an SVG canvas.

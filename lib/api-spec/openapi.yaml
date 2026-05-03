@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Cosmic Coach - Speech Analysis API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: sessions
+    description: Analysis session operations
+  - name: analysis
+    description: Speech analysis operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,197 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List all analysis sessions
+      responses:
+        "200":
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Create a new analysis session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionBody"
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+
+  /sessions/{id}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get a session by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Not found
+
+  /sessions/{id}/analysis:
+    get:
+      operationId: getAnalysis
+      tags: [analysis]
+      summary: Get full analysis for a session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "404":
+          description: Not found
+
+  /sessions/{id}/waveform:
+    get:
+      operationId: getWaveform
+      tags: [analysis]
+      summary: Get waveform energy data for the session timeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Waveform data points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WaveformPoint"
+
+  /sessions/{id}/transcript:
+    get:
+      operationId: getTranscript
+      tags: [analysis]
+      summary: Get annotated transcript for the session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transcript segments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TranscriptSegment"
+
+  /sessions/{id}/persuasion:
+    get:
+      operationId: getPersuasionAnalysis
+      tags: [analysis]
+      summary: Get persuasion structure analysis
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Persuasion analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersuasionAnalysis"
+
+  /sessions/{id}/audience:
+    get:
+      operationId: getAudienceSimulation
+      tags: [analysis]
+      summary: Get AI audience persona feedback
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audience persona feedback
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AudiencePersona"
+
+  /sessions/{id}/impact-timeline:
+    get:
+      operationId: getImpactTimeline
+      tags: [analysis]
+      summary: Get second-by-second impact score timeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Impact timeline data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ImpactPoint"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [analysis]
+      summary: Get aggregated dashboard statistics
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +229,314 @@ components:
       required:
         - status
 
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        speakerName:
+          type: string
+        duration:
+          type: number
+          description: Duration in seconds
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [processing, ready, failed]
+        overallScore:
+          type: number
+          description: 0-100 overall coaching score
+        energyLevel:
+          type: string
+          enum: [low, medium, high, electric]
+        eyeContactScore:
+          type: number
+          description: 0-100 eye contact score
+        confidenceScore:
+          type: number
+          description: 0-100 confidence score
+        fillerWordCount:
+          type: integer
+      required:
+        - id
+        - title
+        - speakerName
+        - duration
+        - createdAt
+        - status
+        - overallScore
+        - energyLevel
+        - eyeContactScore
+        - confidenceScore
+        - fillerWordCount
+
+    CreateSessionBody:
+      type: object
+      properties:
+        title:
+          type: string
+        speakerName:
+          type: string
+        duration:
+          type: number
+      required:
+        - title
+        - speakerName
+        - duration
+
+    WaveformPoint:
+      type: object
+      properties:
+        time:
+          type: number
+          description: Time in seconds
+        energy:
+          type: number
+          description: 0-1 energy level
+        clarity:
+          type: number
+          description: 0-1 verbal clarity
+        pitch:
+          type: number
+          description: normalized pitch value
+      required:
+        - time
+        - energy
+        - clarity
+        - pitch
+
+    TranscriptSegment:
+      type: object
+      properties:
+        id:
+          type: string
+        startTime:
+          type: number
+        endTime:
+          type: number
+        text:
+          type: string
+        isFillerWord:
+          type: boolean
+        fillerType:
+          type: string
+          enum: [um, uh, ah, like, you_know, so, basically]
+        confidenceScore:
+          type: number
+        isGoldenMoment:
+          type: boolean
+      required:
+        - id
+        - startTime
+        - endTime
+        - text
+        - isFillerWord
+        - isGoldenMoment
+
+    PersuasionAnalysis:
+      type: object
+      properties:
+        pasScore:
+          type: number
+          description: Problem-Agitation-Solution completeness score 0-100
+        hasProblemStatement:
+          type: boolean
+        hasAgitation:
+          type: boolean
+        hasSolution:
+          type: boolean
+        ruleOfThreeCount:
+          type: integer
+          description: Number of rule-of-three instances detected
+        ruleOfThreeExamples:
+          type: array
+          items:
+            type: string
+        hasStorytelling:
+          type: boolean
+        storytellingSegments:
+          type: array
+          items:
+            type: string
+        persuasionAlerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersuasionAlert"
+      required:
+        - pasScore
+        - hasProblemStatement
+        - hasAgitation
+        - hasSolution
+        - ruleOfThreeCount
+        - ruleOfThreeExamples
+        - hasStorytelling
+        - storytellingSegments
+        - persuasionAlerts
+
+    PersuasionAlert:
+      type: object
+      properties:
+        id:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        message:
+          type: string
+        timestamp:
+          type: number
+      required:
+        - id
+        - severity
+        - message
+
+    AudiencePersona:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [skeptic, busy_exec, novice, expert, investor]
+        avatarSeed:
+          type: string
+        overallReaction:
+          type: string
+          enum: [engaged, neutral, skeptical, lost, impressed]
+        feedbackItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PersonaFeedback"
+        retentionScore:
+          type: number
+      required:
+        - id
+        - name
+        - role
+        - avatarSeed
+        - overallReaction
+        - feedbackItems
+        - retentionScore
+
+    PersonaFeedback:
+      type: object
+      properties:
+        timestamp:
+          type: number
+        comment:
+          type: string
+        sentiment:
+          type: string
+          enum: [positive, negative, neutral]
+      required:
+        - timestamp
+        - comment
+        - sentiment
+
+    ImpactPoint:
+      type: object
+      properties:
+        time:
+          type: number
+        impactScore:
+          type: number
+          description: 0-100 predicted audience impact
+        isPhoneCheckMoment:
+          type: boolean
+        isGoldenMoment:
+          type: boolean
+        label:
+          type: string
+      required:
+        - time
+        - impactScore
+        - isPhoneCheckMoment
+        - isGoldenMoment
+
+    AnalysisResult:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        overallScore:
+          type: number
+        eyeContactScore:
+          type: number
+        confidenceScore:
+          type: number
+        fillerWordCount:
+          type: integer
+        speechPaceWpm:
+          type: number
+          description: Words per minute
+        volumeConsistency:
+          type: number
+          description: 0-100 score
+        structureScore:
+          type: number
+          description: 0-100 score for speech structure
+        goldenMomentCount:
+          type: integer
+        topStrengths:
+          type: array
+          items:
+            type: string
+        topImprovements:
+          type: array
+          items:
+            type: string
+      required:
+        - sessionId
+        - overallScore
+        - eyeContactScore
+        - confidenceScore
+        - fillerWordCount
+        - speechPaceWpm
+        - volumeConsistency
+        - structureScore
+        - goldenMomentCount
+        - topStrengths
+        - topImprovements
+
+    DashboardStats:
+      type: object
+      properties:
+        totalSessions:
+          type: integer
+        averageScore:
+          type: number
+        totalFillerWordsEliminated:
+          type: integer
+        mostImprovedMetric:
+          type: string
+        bestSession:
+          $ref: "#/components/schemas/Session"
+        recentSessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Session"
+        scoreProgression:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              score:
+                type: number
+            required:
+              - date
+              - score
+      required:
+        - totalSessions
+        - averageScore
+        - totalFillerWordsEliminated
+        - mostImprovedMetric
+        - recentSessions
+        - scoreProgression

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Cosmic Coach"
+version = "1.0.0"
+id = "artifacts/cosmic-coach"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21606
+
+[services.development]
+run = "pnpm --filter @workspace/cosmic-coach run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/cosmic-coach", "run", "build" ]
+publicDir = "artifacts/cosmic-coach/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21606"
+BASE_PATH = "/"

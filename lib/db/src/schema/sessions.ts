@@ -1,0 +1,24 @@
+import { pgTable, text, serial, real, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+
+export const sessionStatusEnum = pgEnum("session_status", ["processing", "ready", "failed"]);
+export const energyLevelEnum = pgEnum("energy_level", ["low", "medium", "high", "electric"]);
+
+export const sessionsTable = pgTable("sessions", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  speakerName: text("speaker_name").notNull(),
+  duration: real("duration").notNull(),
+  status: sessionStatusEnum("status").notNull().default("ready"),
+  overallScore: real("overall_score").notNull().default(0),
+  energyLevel: energyLevelEnum("energy_level").notNull().default("medium"),
+  eyeContactScore: real("eye_contact_score").notNull().default(0),
+  confidenceScore: real("confidence_score").notNull().default(0),
+  fillerWordCount: integer("filler_word_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSessionSchema = createInsertSchema(sessionsTable).omit({ id: true, createdAt: true });
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type Session = typeof sessionsTable.$inferSelect;
