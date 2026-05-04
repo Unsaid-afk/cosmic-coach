@@ -3,6 +3,7 @@ import { db, sessionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import type {
   AnalysisData,
+  DetailedAnalysis,
   TranscriptSegment,
   WaveformPoint,
 } from "../lib/speechAnalysis.js";
@@ -130,6 +131,33 @@ function fallbackAnalysis(sessionId: number, s: typeof sessionsTable.$inferSelec
   };
 }
 
+function fallbackDetailedAnalysis(sessionId: number, s: typeof sessionsTable.$inferSelect): DetailedAnalysis {
+  const r = (n: number) => seededRandom(sessionId * n);
+  return {
+    metrics: [
+      { metric: "Overall Delivery", score: s.overallScore, rating: s.overallScore >= 80 ? "excellent" : s.overallScore >= 65 ? "good" : s.overallScore >= 50 ? "fair" : "poor", reason: "The speaker demonstrates solid command of the material with clear articulation and consistent energy throughout the presentation.", tip: "Record yourself and replay at 0.75× speed to catch moments where your energy dips below baseline." },
+      { metric: "Confidence & Authority", score: Math.round(s.confidenceScore), rating: s.confidenceScore >= 80 ? "excellent" : s.confidenceScore >= 65 ? "good" : "fair", reason: "Vocal projection is consistent but some hesitation patterns emerge during transitions between key points.", tip: "Practice the 'power pose' before speaking and use deliberate downward inflections at sentence ends to signal authority." },
+      { metric: "Speech Structure", score: Math.round(s.overallScore * 0.9 + r(23) * 10), rating: s.overallScore >= 75 ? "good" : "fair", reason: "The speech follows a recognizable arc but the problem statement could be introduced earlier to anchor the audience's attention sooner.", tip: "Use the PREP framework: Point → Reason → Example → Point. State your core message in the first 30 seconds." },
+      { metric: "Pacing & Rhythm", score: Math.round(120 + r(13) * 60), rating: "good", reason: "Speech pace sits within the 120–160 WPM ideal range. Strategic pauses are used after major claims, which gives the audience time to absorb key points.", tip: "Mark pause spots in your notes with a '//'. Aim for 2–3 second pauses after your most important statements." },
+      { metric: "Vocabulary & Clarity", score: Math.round(s.overallScore * 0.85 + r(31) * 15), rating: s.overallScore >= 70 ? "good" : "fair", reason: "Language is accessible and jargon is mostly avoided. A few technical terms appear without definition, which may lose non-expert listeners.", tip: "For every technical term, prepare a 10-word plain-English definition. Test comprehension with someone outside your field." },
+      { metric: "Engagement Factor", score: Math.round(s.overallScore * 0.8 + r(37) * 20), rating: s.overallScore >= 75 ? "good" : "fair", reason: "Rhetorical questions and storytelling elements keep the audience engaged in the middle section. Opening hook needs strengthening.", tip: "Open with a shocking statistic or micro-story from a real person. The first 60 seconds determine whether the audience is with you." },
+    ],
+    fillerBreakdown: s.fillerWordCount > 0 ? [
+      { word: "um", count: Math.ceil(s.fillerWordCount * 0.4), impact: "Signals uncertainty to listeners and erodes perceived expertise — each 'um' triggers a micro-doubt in the audience." },
+      { word: "uh", count: Math.ceil(s.fillerWordCount * 0.3), impact: "Creates cognitive friction for listeners who must mentally skip over the non-word while tracking your argument." },
+      { word: "like", count: Math.ceil(s.fillerWordCount * 0.3), impact: "Perceived as informal in professional contexts — reduces authority with executive and expert audiences." },
+    ] : [],
+    pacingAnalysis: "The speaker maintains a steady cadence through the first two-thirds of the speech. Speed increases noticeably during the solution section, which may cause the audience to miss critical details. Strategic pauses are placed after rhetorical questions, which is effective. The closing 20% rushes slightly — slowing down here would increase memorability.",
+    openingStrength: "The opening establishes context clearly but lacks an immediate hook to capture attention. The first 15 seconds consist of scene-setting rather than a bold claim or provocative question. Audiences form their engagement decision in the first 30 seconds — a stronger opening statement would significantly improve retention throughout.",
+    closingStrength: "The closing summarizes the main points effectively and ends on a forward-looking note. However, the call to action is somewhat vague — a more specific next step with a concrete timeframe would drive audience action. The final sentence trails off in energy; rehearse the closing with full vocal commitment.",
+    keyThemes: ["Innovation", "Market Opportunity", "Proof Points", "Customer Success", "Strategic Vision"],
+    vocabularyComplexity: "moderate",
+    callToActionPresent: s.overallScore > 60,
+    callToActionStrength: s.overallScore > 60 ? "A call to action is present but could be more specific. Add a concrete next step with timeline and owner." : "No clear call to action was detected. Every speech should end with one specific thing you want the audience to do.",
+    overallVerdict: `This speaker shows genuine strengths in ${s.overallScore >= 75 ? "vocal delivery and content clarity" : "content knowledge and structural intent"}, which form a strong foundation to build on. The primary area to address is reducing filler words (${s.fillerWordCount} detected) to project greater authority under pressure. Focus next practice sessions on the opening hook and a sharper call to action. With consistent drilling on these two elements, this speaker can move from good to exceptional in 4–6 weeks.`,
+  };
+}
+
 async function getSessionOrFail(req: import("express").Request, res: import("express").Response) {
   const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(404).json({ error: "Not found" }); return null; }
@@ -246,6 +274,24 @@ router.get("/sessions/:id/impact-timeline", async (req, res) => {
       : fallbackAnalysis(id, session);
 
     res.json(analysis.impactTimeline);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/sessions/:id/detailed-analysis", async (req, res) => {
+  try {
+    const result = await getSessionOrFail(req, res);
+    if (!result) return;
+    const { id, session } = result;
+
+    const analysis = session.analysisData
+      ? (session.analysisData as unknown as AnalysisData)
+      : null;
+
+    const detailed = analysis?.detailedBreakdown ?? fallbackDetailedAnalysis(id, session);
+    res.json(detailed);
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

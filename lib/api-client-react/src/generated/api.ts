@@ -21,6 +21,7 @@ import type {
   AudiencePersona,
   CreateSessionBody,
   DashboardStats,
+  DetailedAnalysis,
   HealthStatus,
   ImpactPoint,
   PersuasionAnalysis,
@@ -878,6 +879,93 @@ export function useGetImpactTimeline<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetImpactTimelineQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get detailed per-metric breakdown with reasons and coaching tips
+ */
+export const getGetDetailedAnalysisUrl = (id: string) => {
+  return `/api/sessions/${id}/detailed-analysis`;
+};
+
+export const getDetailedAnalysis = async (
+  id: string,
+  options?: RequestInit,
+): Promise<DetailedAnalysis> => {
+  return customFetch<DetailedAnalysis>(getGetDetailedAnalysisUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDetailedAnalysisQueryKey = (id: string) => {
+  return [`/api/sessions/${id}/detailed-analysis`] as const;
+};
+
+export const getGetDetailedAnalysisQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDetailedAnalysis>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDetailedAnalysis>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDetailedAnalysisQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDetailedAnalysis>>
+  > = ({ signal }) => getDetailedAnalysis(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDetailedAnalysis>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDetailedAnalysisQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDetailedAnalysis>>
+>;
+export type GetDetailedAnalysisQueryError = ErrorType<void>;
+
+/**
+ * @summary Get detailed per-metric breakdown with reasons and coaching tips
+ */
+
+export function useGetDetailedAnalysis<
+  TData = Awaited<ReturnType<typeof getDetailedAnalysis>>,
+  TError = ErrorType<void>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDetailedAnalysis>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDetailedAnalysisQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

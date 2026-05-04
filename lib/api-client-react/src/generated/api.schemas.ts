@@ -189,6 +189,54 @@ export interface AnalysisResult {
   topImprovements: string[];
 }
 
+export type MetricDetailRating =
+  (typeof MetricDetailRating)[keyof typeof MetricDetailRating];
+
+export const MetricDetailRating = {
+  excellent: "excellent",
+  good: "good",
+  fair: "fair",
+  poor: "poor",
+} as const;
+
+export interface MetricDetail {
+  metric: string;
+  score: number;
+  rating: MetricDetailRating;
+  /** Why this score was given */
+  reason: string;
+  /** Specific actionable coaching advice */
+  tip: string;
+}
+
+export interface FillerBreakdownItem {
+  word: string;
+  count: number;
+  impact: string;
+}
+
+export type DetailedAnalysisVocabularyComplexity =
+  (typeof DetailedAnalysisVocabularyComplexity)[keyof typeof DetailedAnalysisVocabularyComplexity];
+
+export const DetailedAnalysisVocabularyComplexity = {
+  simple: "simple",
+  moderate: "moderate",
+  advanced: "advanced",
+} as const;
+
+export interface DetailedAnalysis {
+  metrics: MetricDetail[];
+  fillerBreakdown: FillerBreakdownItem[];
+  pacingAnalysis: string;
+  openingStrength: string;
+  closingStrength: string;
+  keyThemes: string[];
+  vocabularyComplexity: DetailedAnalysisVocabularyComplexity;
+  callToActionPresent: boolean;
+  callToActionStrength: string;
+  overallVerdict: string;
+}
+
 export type DashboardStatsScoreProgressionItem = {
   date: string;
   score: number;

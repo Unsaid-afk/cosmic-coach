@@ -201,6 +201,40 @@ export const GetImpactTimelineResponse = zod.array(
 );
 
 /**
+ * @summary Get detailed per-metric breakdown with reasons and coaching tips
+ */
+export const GetDetailedAnalysisParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const GetDetailedAnalysisResponse = zod.object({
+  metrics: zod.array(
+    zod.object({
+      metric: zod.string(),
+      score: zod.number(),
+      rating: zod.enum(["excellent", "good", "fair", "poor"]),
+      reason: zod.string().describe("Why this score was given"),
+      tip: zod.string().describe("Specific actionable coaching advice"),
+    }),
+  ),
+  fillerBreakdown: zod.array(
+    zod.object({
+      word: zod.string(),
+      count: zod.number(),
+      impact: zod.string(),
+    }),
+  ),
+  pacingAnalysis: zod.string(),
+  openingStrength: zod.string(),
+  closingStrength: zod.string(),
+  keyThemes: zod.array(zod.string()),
+  vocabularyComplexity: zod.enum(["simple", "moderate", "advanced"]),
+  callToActionPresent: zod.boolean(),
+  callToActionStrength: zod.string(),
+  overallVerdict: zod.string(),
+});
+
+/**
  * @summary Get aggregated dashboard statistics
  */
 export const GetDashboardStatsResponse = zod.object({

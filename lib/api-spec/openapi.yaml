@@ -206,6 +206,27 @@ paths:
                 items:
                   $ref: "#/components/schemas/ImpactPoint"
 
+  /sessions/{id}/detailed-analysis:
+    get:
+      operationId: getDetailedAnalysis
+      tags: [analysis]
+      summary: Get detailed per-metric breakdown with reasons and coaching tips
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Detailed analysis breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetailedAnalysis"
+        "404":
+          description: Not found
+
   /dashboard/stats:
     get:
       operationId: getDashboardStats
@@ -503,6 +524,85 @@ components:
         - goldenMomentCount
         - topStrengths
         - topImprovements
+
+    MetricDetail:
+      type: object
+      properties:
+        metric:
+          type: string
+        score:
+          type: number
+        rating:
+          type: string
+          enum: [excellent, good, fair, poor]
+        reason:
+          type: string
+          description: Why this score was given
+        tip:
+          type: string
+          description: Specific actionable coaching advice
+      required:
+        - metric
+        - score
+        - rating
+        - reason
+        - tip
+
+    FillerBreakdownItem:
+      type: object
+      properties:
+        word:
+          type: string
+        count:
+          type: integer
+        impact:
+          type: string
+      required:
+        - word
+        - count
+        - impact
+
+    DetailedAnalysis:
+      type: object
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/MetricDetail"
+        fillerBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/FillerBreakdownItem"
+        pacingAnalysis:
+          type: string
+        openingStrength:
+          type: string
+        closingStrength:
+          type: string
+        keyThemes:
+          type: array
+          items:
+            type: string
+        vocabularyComplexity:
+          type: string
+          enum: [simple, moderate, advanced]
+        callToActionPresent:
+          type: boolean
+        callToActionStrength:
+          type: string
+        overallVerdict:
+          type: string
+      required:
+        - metrics
+        - fillerBreakdown
+        - pacingAnalysis
+        - openingStrength
+        - closingStrength
+        - keyThemes
+        - vocabularyComplexity
+        - callToActionPresent
+        - callToActionStrength
+        - overallVerdict
 
     DashboardStats:
       type: object

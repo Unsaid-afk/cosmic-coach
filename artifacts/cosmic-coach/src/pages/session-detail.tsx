@@ -6,6 +6,7 @@ import {
   useGetPersuasionAnalysis,
   useGetAudienceSimulation,
   useGetImpactTimeline,
+  useGetDetailedAnalysis,
   getGetSessionQueryKey,
   getGetAnalysisQueryKey,
   getGetWaveformQueryKey,
@@ -26,9 +27,10 @@ import {
 import {
   Activity, Eye, Mic, Brain, ShieldAlert, Target, Users,
   Zap, Clock, MessageSquare, Loader2, AlertTriangle,
-  CheckCircle, Sparkles,
+  CheckCircle, Sparkles, ChevronDown, ChevronUp, BookOpen,
+  TrendingUp, Hash, Megaphone, Star,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const container = {
@@ -152,6 +154,8 @@ export default function SessionDetail() {
   const { data: persuasion } = useGetPersuasionAnalysis(id || "", { query: { enabled: !!id && isReady } });
   const { data: audience } = useGetAudienceSimulation(id || "", { query: { enabled: !!id && isReady } });
   const { data: impact } = useGetImpactTimeline(id || "", { query: { enabled: !!id && isReady } });
+  const [showDetails, setShowDetails] = useState(false);
+  const { data: detailed, isLoading: isDetailedLoading } = useGetDetailedAnalysis(id || "", { query: { enabled: !!id && isReady && showDetails } });
 
   if (isSessionLoading) {
     return (
@@ -526,6 +530,221 @@ export default function SessionDetail() {
         </motion.div>
 
       </div>
+
+      {/* MORE DETAILS TOGGLE */}
+      <motion.div variants={item} className="flex justify-center pt-2">
+        <button
+          onClick={() => setShowDetails((v) => !v)}
+          className="flex items-center gap-2 px-6 py-3 rounded-full border border-border/60 bg-card/40 backdrop-blur-md text-sm font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-primary/5 transition-all"
+        >
+          <BookOpen className="w-4 h-4" />
+          {showDetails ? "Hide" : "Show"} Detailed Breakdown
+          {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+      </motion.div>
+
+      {/* DETAILED BREAKDOWN PANEL */}
+      {showDetails && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="space-y-6"
+        >
+          {isDetailedLoading ? (
+            <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <span className="font-mono text-sm">Generating detailed breakdown…</span>
+            </div>
+          ) : detailed ? (
+            <>
+              {/* OVERALL VERDICT */}
+              <Card className="bg-gradient-to-br from-primary/10 to-secondary/5 border-primary/20 backdrop-blur-md">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0 mt-0.5">
+                      <Star className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase font-mono tracking-widest text-primary mb-2">Overall Coaching Verdict</div>
+                      <p className="text-sm text-foreground/90 leading-relaxed">{detailed.overallVerdict}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* PER-METRIC CARDS */}
+              <div>
+                <div className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+                  <TrendingUp className="w-3 h-3" /> Metric Deep Dive
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {detailed.metrics.map((m) => {
+                    const ratingColors = {
+                      excellent: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
+                      good: "text-primary bg-primary/10 border-primary/30",
+                      fair: "text-chart-3 bg-chart-3/10 border-chart-3/30",
+                      poor: "text-destructive bg-destructive/10 border-destructive/30",
+                    };
+                    const barColors = {
+                      excellent: "bg-emerald-400",
+                      good: "bg-primary",
+                      fair: "bg-chart-3",
+                      poor: "bg-destructive",
+                    };
+                    const displayScore = m.score > 200 ? m.score : m.score; // WPM can be >100
+                    const barWidth = m.score > 200 ? Math.min(100, (m.score / 250) * 100) : m.score;
+                    return (
+                      <Card key={m.metric} className="bg-card/40 border-border/40 backdrop-blur-md">
+                        <CardContent className="p-5">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="font-semibold text-sm text-foreground">{m.metric}</div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-foreground">{Math.round(displayScore)}</span>
+                              <Badge variant="outline" className={`text-[10px] font-mono uppercase ${ratingColors[m.rating]}`}>
+                                {m.rating}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="h-1.5 bg-muted/30 rounded-full mb-4 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${barColors[m.rating]}`}
+                              style={{ width: `${barWidth}%` }}
+                            />
+                          </div>
+                          <div className="space-y-2.5">
+                            <div>
+                              <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground mb-1">Why this score</div>
+                              <p className="text-xs text-foreground/80 leading-relaxed">{m.reason}</p>
+                            </div>
+                            <div className="p-2.5 rounded bg-primary/5 border border-primary/15">
+                              <div className="text-[10px] uppercase font-mono tracking-wider text-primary mb-1">Coaching Tip</div>
+                              <p className="text-xs text-foreground/80 leading-relaxed">{m.tip}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* FILLER BREAKDOWN + PACING */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {detailed.fillerBreakdown.length > 0 && (
+                  <Card className="bg-card/40 border-border/40 backdrop-blur-md">
+                    <CardHeader className="border-b border-border/30 pb-3">
+                      <CardTitle className="text-sm font-mono uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                        <Hash className="w-4 h-4 text-destructive" /> Filler Word Breakdown
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                      {detailed.fillerBreakdown.map((f) => (
+                        <div key={f.word} className="p-3 rounded bg-destructive/5 border border-destructive/20">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-mono text-sm font-bold text-destructive">"{f.word}"</span>
+                            <Badge variant="outline" className="text-[10px] font-mono bg-destructive/10 text-destructive border-destructive/30">
+                              ×{f.count}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-foreground/70 leading-relaxed">{f.impact}</p>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Card className="bg-card/40 border-border/40 backdrop-blur-md">
+                  <CardHeader className="border-b border-border/30 pb-3">
+                    <CardTitle className="text-sm font-mono uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-secondary" /> Pacing & Rhythm
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    <p className="text-sm text-foreground/85 leading-relaxed">{detailed.pacingAnalysis}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* OPENING & CLOSING */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="bg-card/40 border-primary/10 backdrop-blur-md">
+                  <CardContent className="p-5">
+                    <div className="text-[10px] uppercase font-mono tracking-wider text-primary flex items-center gap-1.5 mb-3">
+                      <Zap className="w-3 h-3" /> Opening Strength
+                    </div>
+                    <p className="text-sm text-foreground/85 leading-relaxed">{detailed.openingStrength}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card/40 border-chart-3/10 backdrop-blur-md">
+                  <CardContent className="p-5">
+                    <div className="text-[10px] uppercase font-mono tracking-wider text-chart-3 flex items-center gap-1.5 mb-3">
+                      <Target className="w-3 h-3" /> Closing Strength
+                    </div>
+                    <p className="text-sm text-foreground/85 leading-relaxed">{detailed.closingStrength}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* KEY THEMES + VOCABULARY + CTA */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <Card className="bg-card/40 border-border/40 backdrop-blur-md">
+                  <CardContent className="p-5">
+                    <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground flex items-center gap-1.5 mb-3">
+                      <Brain className="w-3 h-3" /> Key Themes
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {detailed.keyThemes.map((t) => (
+                        <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card/40 border-border/40 backdrop-blur-md">
+                  <CardContent className="p-5">
+                    <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground flex items-center gap-1.5 mb-3">
+                      <BookOpen className="w-3 h-3" /> Vocabulary Complexity
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-sm px-3 py-1 ${
+                        detailed.vocabularyComplexity === "advanced"
+                          ? "bg-secondary/20 text-secondary border-secondary/40"
+                          : detailed.vocabularyComplexity === "moderate"
+                          ? "bg-primary/20 text-primary border-primary/40"
+                          : "bg-muted text-muted-foreground border-border"
+                      }`}
+                    >
+                      {detailed.vocabularyComplexity.charAt(0).toUpperCase() + detailed.vocabularyComplexity.slice(1)}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {detailed.vocabularyComplexity === "advanced" ? "Expert-level language — ensure your audience matches."
+                        : detailed.vocabularyComplexity === "moderate" ? "Balanced vocabulary — accessible to most audiences."
+                        : "Simple, clear language — great for broad audiences."}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card/40 border-border/40 backdrop-blur-md">
+                  <CardContent className="p-5">
+                    <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground flex items-center gap-1.5 mb-3">
+                      <Megaphone className="w-3 h-3" /> Call to Action
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] mb-2 ${detailed.callToActionPresent ? "bg-chart-3/20 text-chart-3 border-chart-3/40" : "bg-muted/20 text-muted-foreground border-border"}`}
+                    >
+                      {detailed.callToActionPresent ? "CTA Detected" : "No CTA"}
+                    </Badge>
+                    <p className="text-xs text-foreground/80 leading-relaxed">{detailed.callToActionStrength}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          ) : null}
+        </motion.div>
+      )}
 
     </motion.div>
   );

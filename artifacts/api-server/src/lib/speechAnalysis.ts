@@ -68,6 +68,33 @@ export interface ImpactPoint {
   label?: string;
 }
 
+export interface MetricDetail {
+  metric: string;
+  score: number;
+  rating: "excellent" | "good" | "fair" | "poor";
+  reason: string;
+  tip: string;
+}
+
+export interface FillerBreakdownItem {
+  word: string;
+  count: number;
+  impact: string;
+}
+
+export interface DetailedAnalysis {
+  metrics: MetricDetail[];
+  fillerBreakdown: FillerBreakdownItem[];
+  pacingAnalysis: string;
+  openingStrength: string;
+  closingStrength: string;
+  keyThemes: string[];
+  vocabularyComplexity: "simple" | "moderate" | "advanced";
+  callToActionPresent: boolean;
+  callToActionStrength: string;
+  overallVerdict: string;
+}
+
 export interface AnalysisData {
   overallScore: number;
   eyeContactScore: number;
@@ -84,6 +111,7 @@ export interface AnalysisData {
   persuasion: PersuasionAnalysis;
   audience: AudiencePersona[];
   impactTimeline: ImpactPoint[];
+  detailedBreakdown?: DetailedAnalysis;
 }
 
 // ─── Filler word detection ────────────────────────────────────────────────────
@@ -391,6 +419,63 @@ Return JSON array covering 0 to ${Math.round(duration)} seconds in steps of ${st
   }));
 }
 
+async function callDetailedAnalysis(
+  transcript: string,
+  wpm: number,
+  fillerWords: TranscriptWord[],
+): Promise<DetailedAnalysis> {
+  const fillerCounts: Record<string, number> = {};
+  for (const fw of fillerWords) {
+    const w = fw.word.toLowerCase().replace(/[^a-z]/g, "");
+    if (w) fillerCounts[w] = (fillerCounts[w] ?? 0) + 1;
+  }
+  const fillerSummary = Object.entries(fillerCounts).map(([w, c]) => `${w}×${c}`).join(", ") || "none detected";
+
+  const r = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    max_completion_tokens: 1400,
+    messages: [{
+      role: "user",
+      content: `You are an elite speech coach. Deeply analyze this speech (${wpm} WPM, fillers: ${fillerSummary}).
+
+TRANSCRIPT (first 1800 chars):
+${transcript.slice(0, 1800)}
+
+Return JSON only:
+{"metrics":[{"metric":"Overall Delivery","score":<0-100>,"rating":"excellent"|"good"|"fair"|"poor","reason":"<2-3 sentences explaining the score>","tip":"<one specific actionable drill or technique>"},{"metric":"Confidence & Authority","score":<0-100>,"rating":"excellent"|"good"|"fair"|"poor","reason":"<2-3 sentences>","tip":"<specific advice>"},{"metric":"Speech Structure","score":<0-100>,"rating":"excellent"|"good"|"fair"|"poor","reason":"<2-3 sentences>","tip":"<specific advice>"},{"metric":"Pacing & Rhythm","score":<0-100>,"rating":"excellent"|"good"|"fair"|"poor","reason":"<2-3 sentences — note ideal is 120-160 WPM>","tip":"<specific advice>"},{"metric":"Vocabulary & Clarity","score":<0-100>,"rating":"excellent"|"good"|"fair"|"poor","reason":"<2-3 sentences>","tip":"<specific advice>"},{"metric":"Engagement Factor","score":<0-100>,"rating":"excellent"|"good"|"fair"|"poor","reason":"<2-3 sentences>","tip":"<specific advice>"}],"fillerBreakdown":[<for each unique filler word: {"word":<word>,"count":<n>,"impact":"<one sentence on how it affects listeners and perceived authority>"}>],"pacingAnalysis":"<3-4 sentences on rhythm, use of pauses, speed variation, and how it affects comprehension>","openingStrength":"<3-4 sentences assessing the first 20% of the speech — hook, attention, clarity of intent>","closingStrength":"<3-4 sentences assessing the final 20% — memorability, call to action, lasting impression>","keyThemes":[<3-6 main themes or topics detected>],"vocabularyComplexity":"simple"|"moderate"|"advanced","callToActionPresent":<bool>,"callToActionStrength":"<assessment of the CTA or 'No clear call to action was detected'>","overallVerdict":"<4-5 sentence holistic coaching verdict — what this speaker does well, what to work on most urgently, and one motivating forward-looking statement>"}`
+    }],
+    response_format: { type: "json_object" },
+  });
+
+  const p = JSON.parse(r.choices[0]?.message?.content ?? "{}") as Record<string, unknown>;
+  const toRating = (v: unknown): MetricDetail["rating"] =>
+    (["excellent", "good", "fair", "poor"].includes(String(v)) ? v : "fair") as MetricDetail["rating"];
+
+  return {
+    metrics: ((p.metrics as MetricDetail[] | undefined) ?? []).map((m) => ({
+      metric: String(m.metric ?? ""),
+      score: clamp(safeNum(m.score, 50)),
+      rating: toRating(m.rating),
+      reason: String(m.reason ?? ""),
+      tip: String(m.tip ?? ""),
+    })),
+    fillerBreakdown: ((p.fillerBreakdown as FillerBreakdownItem[] | undefined) ?? []).map((f) => ({
+      word: String(f.word ?? ""),
+      count: Math.round(safeNum(f.count, 0)),
+      impact: String(f.impact ?? ""),
+    })),
+    pacingAnalysis: String(p.pacingAnalysis ?? ""),
+    openingStrength: String(p.openingStrength ?? ""),
+    closingStrength: String(p.closingStrength ?? ""),
+    keyThemes: ((p.keyThemes as string[] | undefined) ?? []).map(String),
+    vocabularyComplexity: (["simple", "moderate", "advanced"].includes(String(p.vocabularyComplexity))
+      ? p.vocabularyComplexity : "moderate") as DetailedAnalysis["vocabularyComplexity"],
+    callToActionPresent: !!(p.callToActionPresent),
+    callToActionStrength: String(p.callToActionStrength ?? ""),
+    overallVerdict: String(p.overallVerdict ?? ""),
+  };
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function analyzeTranscriptWithAI(
@@ -402,12 +487,13 @@ export async function analyzeTranscriptWithAI(
   const fillerWords = words.filter((w) => isFillerWord(w.word));
   const wpm = duration > 0 ? Math.round((words.length / duration) * 60) : 0;
 
-  // Fire all 4 analysis calls in parallel — total latency = slowest call (not sum)
-  const [scoring, persuasion, audience, impactTimeline] = await Promise.all([
+  // Fire all 5 analysis calls in parallel — total latency = slowest call (not sum)
+  const [scoring, persuasion, audience, impactTimeline, detailedBreakdown] = await Promise.all([
     callScoring(transcript, wpm, fillerWords.length, speakerName),
     callPersuasion(transcript),
     callAudience(transcript, speakerName),
     callImpactTimeline(transcript, duration),
+    callDetailedAnalysis(transcript, wpm, fillerWords),
   ]);
 
   const goldenMomentCount = impactTimeline.filter((p) => p.isGoldenMoment).length;
@@ -428,6 +514,7 @@ export async function analyzeTranscriptWithAI(
     persuasion,
     audience,
     impactTimeline,
+    detailedBreakdown,
   };
 }
 
