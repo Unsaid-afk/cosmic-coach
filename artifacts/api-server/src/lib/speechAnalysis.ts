@@ -124,29 +124,32 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
 
   const file = new File([new Blob([audioBuffer], { type: mimeType })], `audio.${ext}`, { type: mimeType });
 
+  // gpt-4o-mini-transcribe only supports "json" or "text" — no verbose_json / word timestamps
   const response = await openai.audio.transcriptions.create({
     file,
     model: "gpt-4o-mini-transcribe",
-    response_format: "verbose_json",
-    timestamp_granularities: ["word"],
+    response_format: "json",
   } as Parameters<typeof openai.audio.transcriptions.create>[0]);
 
-  const result = response as unknown as {
-    text: string;
-    duration: number;
-    words?: Array<{ word: string; start: number; end: number; probability?: number }>;
-  };
+  const text: string = typeof response === "string"
+    ? response
+    : (response as { text: string }).text ?? "";
 
-  return {
-    text: result.text,
-    words: (result.words ?? []).map((w) => ({
-      word: w.word,
-      start: w.start,
-      end: w.end,
-      probability: w.probability ?? 0.9,
-    })),
-    duration: result.duration ?? 0,
-  };
+  // Synthesize word-level timing from plain text.
+  // Assumed pace of 130 WPM — consistent with conversational speech.
+  const rawWords = text.split(/\s+/).filter(Boolean);
+  const secPerWord = 60 / 130;
+
+  const words: TranscriptWord[] = rawWords.map((word, i) => ({
+    word,
+    start: Math.round(i * secPerWord * 100) / 100,
+    end: Math.round((i + 1) * secPerWord * 100) / 100,
+    probability: 0.9,
+  }));
+
+  const duration = Math.round(rawWords.length * secPerWord * 10) / 10;
+
+  return { text, words, duration };
 }
 
 // ─── Transcript segments ──────────────────────────────────────────────────────
