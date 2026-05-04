@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, sessionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { CreateSessionBody } from "@workspace/api-zod";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 const router = Router();
 

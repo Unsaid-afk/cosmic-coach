@@ -1,5 +1,4 @@
 import { Router } from "express";
-import multer from "multer";
 import { db, sessionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
@@ -9,37 +8,34 @@ import {
   analyzeTranscriptWithAI,
   markGoldenMomentsInSegments,
 } from "../lib/speechAnalysis.js";
+import { downloadMediaFromUrl } from "../lib/urlDownloader.js";
 
 const router = Router();
 
-// Store files in memory (max 100MB for video/audio)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    const allowed = ["audio/", "video/"];
-    if (allowed.some((t) => file.mimetype.startsWith(t))) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only audio and video files are accepted"));
-    }
-  },
-});
-
-// POST /api/sessions - create session with optional file
-router.post("/sessions/upload", upload.single("media"), async (req, res) => {
+// POST /api/sessions/from-url
+router.post("/sessions/from-url", async (req, res) => {
   const log = req.log;
-  const { title, speakerName } = req.body as { title?: string; speakerName?: string };
+  const { title, speakerName, url } = req.body as {
+    title?: string;
+    speakerName?: string;
+    url?: string;
+  };
 
-  if (!title || !speakerName) {
-    return res.status(400).json({ error: "title and speakerName are required" });
+  if (!title || !speakerName || !url) {
+    return res.status(400).json({ error: "title, speakerName, and url are required" });
   }
 
-  if (!req.file) {
-    return res.status(400).json({ error: "A media file is required" });
+  // Quick URL sanity check
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return res.status(400).json({ error: "Only HTTP/HTTPS URLs are supported" });
+    }
+  } catch {
+    return res.status(400).json({ error: "Invalid URL" });
   }
 
-  // Create session immediately with "processing" status
+  // Create session immediately
   const [session] = await db
     .insert(sessionsTable)
     .values({
@@ -55,7 +51,6 @@ router.post("/sessions/upload", upload.single("media"), async (req, res) => {
     })
     .returning();
 
-  // Return the session immediately, process asynchronously
   res.status(202).json({
     id: String(session.id),
     title: session.title,
@@ -70,41 +65,35 @@ router.post("/sessions/upload", upload.single("media"), async (req, res) => {
     fillerWordCount: session.fillerWordCount,
   });
 
-  // Process asynchronously
-  processMedia(session.id, req.file!.buffer, req.file!.mimetype, speakerName, log).catch((err) => {
-    log.error({ err }, "Media processing failed");
+  // Process async
+  processUrl(session.id, url, speakerName, log).catch((err) => {
+    log.error({ err }, "URL processing failed");
   });
 });
 
-async function processMedia(
+async function processUrl(
   sessionId: number,
-  buffer: Buffer,
-  mimeType: string,
+  url: string,
   speakerName: string,
-  log: import("pino").Logger
+  log: import("pino").Logger,
 ) {
   try {
-    log.info({ sessionId }, "Starting transcription");
+    log.info({ sessionId, url }, "Downloading media from URL");
 
-    // Step 1: Transcribe
+    const { buffer, mimeType } = await downloadMediaFromUrl(url);
+    log.info({ sessionId, bytes: buffer.length, mimeType }, "Download complete");
+
     const { text, words, duration } = await transcribeAudio(buffer, mimeType);
     log.info({ sessionId, wordCount: words.length, duration }, "Transcription complete");
 
-    // Step 2: Build transcript segments
-    const rawSegments = buildTranscriptSegments(words);
+    const [rawSegments, waveform, analysis] = await Promise.all([
+      Promise.resolve(buildTranscriptSegments(words)),
+      Promise.resolve(generateWaveformFromWords(words, duration)),
+      analyzeTranscriptWithAI(text, words, duration, speakerName),
+    ]);
 
-    // Step 3: Generate waveform from word timing
-    const waveform = generateWaveformFromWords(words, duration);
-
-    // Step 4: AI analysis
-    log.info({ sessionId }, "Starting AI analysis");
-    const analysis = await analyzeTranscriptWithAI(text, words, duration, speakerName);
-    log.info({ sessionId, overallScore: analysis.overallScore }, "AI analysis complete");
-
-    // Step 5: Mark golden moments in transcript
     const segments = markGoldenMomentsInSegments(rawSegments, analysis);
 
-    // Step 6: Update session with real data
     await db
       .update(sessionsTable)
       .set({
@@ -121,9 +110,9 @@ async function processMedia(
       })
       .where(eq(sessionsTable.id, sessionId));
 
-    log.info({ sessionId }, "Session processing complete");
+    log.info({ sessionId }, "URL session processing complete");
   } catch (err) {
-    log.error({ err, sessionId }, "Processing failed");
+    log.error({ err, sessionId }, "URL processing failed");
     await db
       .update(sessionsTable)
       .set({

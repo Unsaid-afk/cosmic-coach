@@ -131,7 +131,7 @@ function fallbackAnalysis(sessionId: number, s: typeof sessionsTable.$inferSelec
 }
 
 async function getSessionOrFail(req: import("express").Request, res: import("express").Response) {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id));
   if (isNaN(id)) { res.status(404).json({ error: "Not found" }); return null; }
   const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id));
   if (!session) { res.status(404).json({ error: "Not found" }); return null; }
