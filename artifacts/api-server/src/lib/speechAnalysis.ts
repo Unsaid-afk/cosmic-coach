@@ -124,10 +124,9 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
 
   const file = new File([new Blob([audioBuffer], { type: mimeType })], `audio.${ext}`, { type: mimeType });
 
-  // whisper-1 is faster than gpt-4o-mini-transcribe for most files
   const response = await openai.audio.transcriptions.create({
     file,
-    model: "whisper-1",
+    model: "gpt-4o-mini-transcribe",
     response_format: "verbose_json",
     timestamp_granularities: ["word"],
   } as Parameters<typeof openai.audio.transcriptions.create>[0]);
