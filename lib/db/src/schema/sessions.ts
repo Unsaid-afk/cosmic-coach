@@ -7,6 +7,7 @@ export const energyLevelEnum = pgEnum("energy_level", ["low", "medium", "high", 
 
 export const sessionsTable = pgTable("sessions", {
   id: serial("id").primaryKey(),
+  userId: text("user_id"),
   title: text("title").notNull(),
   speakerName: text("speaker_name").notNull(),
   duration: real("duration").notNull().default(0),
@@ -17,7 +18,6 @@ export const sessionsTable = pgTable("sessions", {
   confidenceScore: real("confidence_score").notNull().default(0),
   fillerWordCount: integer("filler_word_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  // Real AI data fields
   transcriptData: jsonb("transcript_data"),
   analysisData: jsonb("analysis_data"),
   waveformData: jsonb("waveform_data"),
