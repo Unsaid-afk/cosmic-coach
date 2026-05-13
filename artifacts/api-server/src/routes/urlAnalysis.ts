@@ -13,7 +13,7 @@ import { downloadMediaFromUrl } from "../lib/urlDownloader.js";
 const router = Router();
 
 // POST /api/sessions/from-url
-router.post("/sessions/from-url", async (req, res) => {
+router.post("/sessions/from-url", async (req, res): Promise<void> => {
   const log = req.log;
   const { title, speakerName, url } = req.body as {
     title?: string;
@@ -22,17 +22,20 @@ router.post("/sessions/from-url", async (req, res) => {
   };
 
   if (!title || !speakerName || !url) {
-    return res.status(400).json({ error: "title, speakerName, and url are required" });
+    res.status(400).json({ error: "title, speakerName, and url are required" });
+    return;
   }
 
   // Quick URL sanity check
   try {
     const parsed = new URL(url);
     if (!["http:", "https:"].includes(parsed.protocol)) {
-      return res.status(400).json({ error: "Only HTTP/HTTPS URLs are supported" });
+      res.status(400).json({ error: "Only HTTP/HTTPS URLs are supported" });
+      return;
     }
   } catch {
-    return res.status(400).json({ error: "Invalid URL" });
+    res.status(400).json({ error: "Invalid URL" });
+    return;
   }
 
   // Create session immediately

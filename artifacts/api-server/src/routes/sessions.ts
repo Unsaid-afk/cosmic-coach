@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, sessionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { CreateSessionBody } from "@workspace/api-zod";
-import { z } from "zod";
 
 const router = Router();
 
@@ -65,12 +64,12 @@ router.post("/sessions", async (req, res) => {
   }
 });
 
-router.get("/sessions/:id", async (req, res) => {
+router.get("/sessions/:id", async (req, res): Promise<void> => {
   try {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(404).json({ error: "Not found" });
+    if (isNaN(id)) { res.status(404).json({ error: "Not found" }); return; }
     const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id));
-    if (!session) return res.status(404).json({ error: "Not found" });
+    if (!session) { res.status(404).json({ error: "Not found" }); return; }
     res.json({
       id: String(session.id),
       title: session.title,

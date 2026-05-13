@@ -27,16 +27,18 @@ const upload = multer({
 });
 
 // POST /api/sessions - create session with optional file
-router.post("/sessions/upload", upload.single("media"), async (req, res) => {
+router.post("/sessions/upload", upload.single("media"), async (req, res): Promise<void> => {
   const log = req.log;
   const { title, speakerName } = req.body as { title?: string; speakerName?: string };
 
   if (!title || !speakerName) {
-    return res.status(400).json({ error: "title and speakerName are required" });
+    res.status(400).json({ error: "title and speakerName are required" });
+    return;
   }
 
   if (!req.file) {
-    return res.status(400).json({ error: "A media file is required" });
+    res.status(400).json({ error: "A media file is required" });
+    return;
   }
 
   // Create session immediately with "processing" status

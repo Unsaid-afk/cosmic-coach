@@ -150,7 +150,8 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
     : mimeType.includes("ogg") ? "ogg"
     : "mp3";
 
-  const file = new File([new Blob([audioBuffer], { type: mimeType })], `audio.${ext}`, { type: mimeType });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const file = new File([new Blob([audioBuffer as any], { type: mimeType })], `audio.${ext}`, { type: mimeType });
 
   // gpt-4o-mini-transcribe only supports "json" or "text" — no verbose_json / word timestamps
   const response = await openai.audio.transcriptions.create({
@@ -161,7 +162,7 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
 
   const text: string = typeof response === "string"
     ? response
-    : (response as { text: string }).text ?? "";
+    : (response as unknown as { text: string }).text ?? "";
 
   // Synthesize word-level timing from plain text.
   // Assumed pace of 130 WPM — consistent with conversational speech.

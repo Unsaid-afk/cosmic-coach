@@ -14,6 +14,7 @@ import {
   getGetPersuasionAnalysisQueryKey,
   getGetAudienceSimulationQueryKey,
   getGetImpactTimelineQueryKey,
+  getGetDetailedAnalysisQueryKey,
 } from "@workspace/api-client-react";
 import { useParams } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -147,15 +148,15 @@ export default function SessionDetail() {
   }, [id, isProcessing, isReady, queryClient]);
 
   const { data: analysis, isLoading: isAnalysisLoading } = useGetAnalysis(id || "", {
-    query: { enabled: !!id && isReady },
+    query: { queryKey: getGetAnalysisQueryKey(id || ""), enabled: !!id && isReady },
   });
-  const { data: waveform } = useGetWaveform(id || "", { query: { enabled: !!id && isReady } });
-  const { data: transcript } = useGetTranscript(id || "", { query: { enabled: !!id && isReady } });
-  const { data: persuasion } = useGetPersuasionAnalysis(id || "", { query: { enabled: !!id && isReady } });
-  const { data: audience } = useGetAudienceSimulation(id || "", { query: { enabled: !!id && isReady } });
-  const { data: impact } = useGetImpactTimeline(id || "", { query: { enabled: !!id && isReady } });
+  const { data: waveform } = useGetWaveform(id || "", { query: { queryKey: getGetWaveformQueryKey(id || ""), enabled: !!id && isReady } });
+  const { data: transcript } = useGetTranscript(id || "", { query: { queryKey: getGetTranscriptQueryKey(id || ""), enabled: !!id && isReady } });
+  const { data: persuasion } = useGetPersuasionAnalysis(id || "", { query: { queryKey: getGetPersuasionAnalysisQueryKey(id || ""), enabled: !!id && isReady } });
+  const { data: audience } = useGetAudienceSimulation(id || "", { query: { queryKey: getGetAudienceSimulationQueryKey(id || ""), enabled: !!id && isReady } });
+  const { data: impact } = useGetImpactTimeline(id || "", { query: { queryKey: getGetImpactTimelineQueryKey(id || ""), enabled: !!id && isReady } });
   const [showDetails, setShowDetails] = useState(false);
-  const { data: detailed, isLoading: isDetailedLoading } = useGetDetailedAnalysis(id || "", { query: { enabled: !!id && isReady && showDetails } });
+  const { data: detailed, isLoading: isDetailedLoading } = useGetDetailedAnalysis(id || "", { query: { queryKey: getGetDetailedAnalysisQueryKey(id || ""), enabled: !!id && isReady && showDetails } });
 
   if (isSessionLoading) {
     return (

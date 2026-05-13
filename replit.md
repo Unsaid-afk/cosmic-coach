@@ -52,6 +52,16 @@ pnpm workspace monorepo using TypeScript. AI-powered speech coaching platform wi
 - Portal: `POST /api/billing/portal` → Stripe customer portal session
 - Products: `GET /api/billing/products` → reads `stripe.products` + `stripe.prices`
 
+## Admin System
+
+- Exactly 2 admin accounts supported — controlled by `ADMIN_EMAILS` env var (comma-separated emails)
+- Set `ADMIN_EMAILS=you@example.com,other@example.com` in Secrets/Environment to activate admin accounts
+- Admin users automatically get `isPremium: true` (bypass all gates) and `isAdmin: true` from `GET /api/users/me`
+- Admin-only sidebar item: "Admin Panel" (shield icon) → `/admin`
+- Admin panel shows: global stats (users, sessions, premium count), all users table, all sessions table
+- Admin routes: `GET /api/admin/stats`, `GET /api/admin/users`, `GET /api/admin/sessions` — 403 for non-admins
+- Sidebar shows blue "Admin Access" badge instead of "Upgrade to Pro" for admin users
+
 ## Premium Gating (Freemium Bridge)
 
 - **Free**: up to 3 sessions, 25 MB upload limit

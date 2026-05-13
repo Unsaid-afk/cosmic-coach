@@ -4,6 +4,7 @@ import { db, usersTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
 import { getUncachableStripeClient } from "../lib/stripeClient.js";
+import { isAdminEmail } from "../lib/adminUtils.js";
 
 const router = Router();
 
@@ -42,7 +43,8 @@ router.get("/users/me", requireAuth, async (req: Request, res: Response): Promis
     }
 
     const isPremium = await isPremiumUser(user?.stripeSubscriptionId);
-    res.json({ ...user, isPremium });
+    const isAdmin = isAdminEmail(user?.email ?? (auth.sessionClaims?.email as string | undefined));
+    res.json({ ...user, isPremium: isPremium || isAdmin, isAdmin });
   } catch (err) {
     log.error({ err }, "Failed to get user");
     res.status(500).json({ error: "Server error" });

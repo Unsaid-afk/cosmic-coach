@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router as WouterRouter, Switch, Route, Link, useLocation, Redirect } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Mic, LayoutDashboard, Plus, Settings, Crown, LogOut, User, ChevronDown } from "lucide-react";
+import { Mic, LayoutDashboard, Plus, Settings, Crown, LogOut, User, ChevronDown, Shield } from "lucide-react";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu,
   SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupContent,
@@ -20,6 +20,7 @@ import Landing from "./pages/landing";
 import SignInPage from "./pages/sign-in";
 import SignUpPage from "./pages/sign-up";
 import PricingPage from "./pages/pricing";
+import AdminPage from "./pages/admin";
 import { usePremiumStatus } from "./hooks/usePremiumStatus";
 
 const queryClient = new QueryClient();
@@ -103,7 +104,7 @@ function ClerkQueryClientCacheInvalidator() {
 
 function UserMenu() {
   const { user, isSignedIn } = useUser();
-  const { isPremium } = usePremiumStatus();
+  const { isPremium, isAdmin } = usePremiumStatus();
   const { signOut } = useClerk();
   const [, setLocation] = useLocation();
   const [open, setOpen] = React.useState(false);
@@ -127,7 +128,11 @@ function UserMenu() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-xs font-semibold text-foreground truncate">{displayName}</div>
-          {isPremium ? (
+          {isAdmin ? (
+            <div className="flex items-center gap-1 text-[10px] text-blue-400 font-mono">
+              <Shield className="w-2.5 h-2.5" /> Admin
+            </div>
+          ) : isPremium ? (
             <div className="flex items-center gap-1 text-[10px] text-amber-400 font-mono">
               <Crown className="w-2.5 h-2.5" /> Pro
             </div>
@@ -164,7 +169,7 @@ function UserMenu() {
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
-  const { isPremium } = usePremiumStatus();
+  const { isPremium, isAdmin } = usePremiumStatus();
 
   return (
     <SidebarProvider>
@@ -212,11 +217,21 @@ function Layout({ children }: { children: React.ReactNode }) {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  {isAdmin && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <Link href="/admin" className="flex items-center gap-3 w-full text-blue-400">
+                          <Shield className="w-4 h-4" />
+                          <span>Admin Panel</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {!isPremium && (
+            {!isPremium && !isAdmin && (
               <div className="p-3 border-t border-border/30">
                 <Link href="/pricing">
                   <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 hover:bg-amber-500/10 transition-colors cursor-pointer">
@@ -227,6 +242,17 @@ function Layout({ children }: { children: React.ReactNode }) {
                     <p className="text-[10px] text-muted-foreground/70">7-day free trial · $19/mo</p>
                   </div>
                 </Link>
+              </div>
+            )}
+            {isAdmin && (
+              <div className="p-3 border-t border-border/30">
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-xs font-mono text-blue-400 uppercase tracking-wider">Admin Access</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/70 mt-0.5">Full system access enabled</p>
+                </div>
               </div>
             )}
 
@@ -304,6 +330,7 @@ function InnerRoutes() {
               <Route path="/sessions/new" component={() => <ProtectedRoute component={NewSession} />} />
               <Route path="/sessions/:id" component={() => <ProtectedRoute component={SessionDetail} />} />
               <Route path="/sessions" component={() => <ProtectedRoute component={Sessions} />} />
+              <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
               <Route component={NotFound} />
             </Switch>
             <Toaster />

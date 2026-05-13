@@ -7,6 +7,7 @@ interface UserData {
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   isPremium: boolean;
+  isAdmin: boolean;
 }
 
 interface ProductRow {
@@ -54,6 +55,7 @@ export function usePremiumStatus() {
 
   return {
     isPremium: user?.isPremium ?? false,
+    isAdmin: user?.isAdmin ?? false,
     isLoading: isUserLoading,
     user,
     priceId: priceId ?? null,

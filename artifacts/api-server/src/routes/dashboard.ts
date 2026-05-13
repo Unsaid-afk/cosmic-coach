@@ -4,12 +4,12 @@ import { desc } from "drizzle-orm";
 
 const router = Router();
 
-router.get("/dashboard/stats", async (req, res) => {
+router.get("/dashboard/stats", async (req, res): Promise<void> => {
   try {
     const all = await db.select().from(sessionsTable).orderBy(desc(sessionsTable.createdAt));
 
     if (all.length === 0) {
-      return res.json({
+      res.json({
         totalSessions: 0,
         averageScore: 0,
         totalFillerWordsEliminated: 0,
@@ -18,6 +18,7 @@ router.get("/dashboard/stats", async (req, res) => {
         recentSessions: [],
         scoreProgression: [],
       });
+      return;
     }
 
     const totalSessions = all.length;
