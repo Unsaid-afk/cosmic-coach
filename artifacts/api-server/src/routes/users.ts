@@ -20,6 +20,8 @@ async function isPremiumUser(stripeSubscriptionId: string | null | undefined): P
   }
 }
 
+import { clerkClient } from "@clerk/express";
+
 router.get("/users/me", requireAuth, async (req: Request, res: Response): Promise<void> => {
   const log = req.log;
   const userId = req.userId!;
@@ -28,11 +30,25 @@ router.get("/users/me", requireAuth, async (req: Request, res: Response): Promis
   try {
     let [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
 
+    let email = user?.email || (auth.sessionClaims?.email as string | undefined) || "";
+
+    // If we still don't have an email, fetch it directly from Clerk
+    if (!email) {
+      try {
+        // Fallback to fetching directly from Clerk API
+        const clerkUser = await clerkClient.users.getUser(userId);
+        email = clerkUser.emailAddresses.find((e: any) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress 
+             || clerkUser.emailAddresses[0]?.emailAddress 
+             || "";
+      } catch (err) {
+        log.warn({ err, userId }, "Could not fetch user email from Clerk API");
+      }
+    }
+
     if (!user) {
-      const email = (auth.sessionClaims?.email as string | undefined) ?? "";
       const inserted = await db
         .insert(usersTable)
-        .values({ id: userId, email })
+        .values({ id: userId, email: email || null })
         .onConflictDoNothing()
         .returning();
       user = inserted[0];
@@ -40,10 +56,18 @@ router.get("/users/me", requireAuth, async (req: Request, res: Response): Promis
         const [found] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
         user = found;
       }
+    } else if (!user.email && email) {
+      // Update DB if we found the email but it was missing in DB
+      const updated = await db
+        .update(usersTable)
+        .set({ email })
+        .where(eq(usersTable.id, userId))
+        .returning();
+      if (updated[0]) user = updated[0];
     }
 
     const isPremium = await isPremiumUser(user?.stripeSubscriptionId);
-    const isAdmin = isAdminEmail(user?.email ?? (auth.sessionClaims?.email as string | undefined));
+    const isAdmin = isAdminEmail(user?.email);
     res.json({ ...user, isPremium: isPremium || isAdmin, isAdmin });
   } catch (err) {
     log.error({ err }, "Failed to get user");

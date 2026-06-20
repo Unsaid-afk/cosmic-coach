@@ -17,6 +17,7 @@ interface ProductRow {
 
 async function fetchMe(): Promise<UserData> {
   const resp = await fetch("/api/users/me", { credentials: "include" });
+  if (resp.status === 403) throw new Error("BANNED");
   if (!resp.ok) throw new Error("Failed to fetch user");
   return resp.json() as Promise<UserData>;
 }
@@ -38,7 +39,7 @@ async function fetchPriceId(): Promise<string | null> {
 export function usePremiumStatus() {
   const { isSignedIn } = useUser();
 
-  const { data: user, isLoading: isUserLoading } = useQuery({
+  const { data: user, isLoading: isUserLoading, isError, error } = useQuery({
     queryKey: ["user-me"],
     queryFn: fetchMe,
     enabled: !!isSignedIn,
@@ -57,6 +58,8 @@ export function usePremiumStatus() {
     isPremium: user?.isPremium ?? false,
     isAdmin: user?.isAdmin ?? false,
     isLoading: isUserLoading,
+    isError,
+    error,
     user,
     priceId: priceId ?? null,
   };

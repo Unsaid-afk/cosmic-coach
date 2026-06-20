@@ -43,6 +43,7 @@ export interface Session {
   /** 0-100 confidence score */
   confidenceScore: number;
   fillerWordCount: number;
+  errorMessage?: string | null;
 }
 
 export interface CreateSessionBody {

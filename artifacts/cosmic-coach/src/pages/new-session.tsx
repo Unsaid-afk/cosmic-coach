@@ -68,7 +68,7 @@ export default function NewSession() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [stage, setStage] = useState<"idle" | "uploading" | "downloading" | "processing">("idle");
 
-  const form = useForm({ resolver: zodResolver(baseSchema), defaultValues: { title: "", speakerName: "" } });
+  const form = useForm({ resolver: zodResolver(baseSchema as any), defaultValues: { title: "", speakerName: "" } });
 
   const validateAndSetFile = useCallback((f: File) => {
     if (!ACCEPTED_TYPES.includes(f.type)) {

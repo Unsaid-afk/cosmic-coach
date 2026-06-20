@@ -282,6 +282,9 @@ components:
           description: 0-100 confidence score
         fillerWordCount:
           type: integer
+        errorMessage:
+          type: string
+          nullable: true
       required:
         - id
         - title

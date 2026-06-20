@@ -156,7 +156,7 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
   // gpt-4o-mini-transcribe only supports "json" or "text" — no verbose_json / word timestamps
   const response = await openai.audio.transcriptions.create({
     file,
-    model: "gpt-4o-mini-transcribe",
+    model: "whisper-large-v3",
     response_format: "json",
   } as Parameters<typeof openai.audio.transcriptions.create>[0]);
 
@@ -281,7 +281,7 @@ function safeNum(v: unknown, fallback: number) { const n = Number(v); return isN
 
 async function callScoring(transcript: string, wpm: number, fillerCount: number, speakerName: string): Promise<ScoringResult> {
   const r = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "llama-3.3-70b-versatile",
     max_completion_tokens: 600,
     messages: [{
       role: "user",
@@ -310,7 +310,7 @@ Return JSON only:
 
 async function callPersuasion(transcript: string): Promise<PersuasionResult> {
   const r = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "llama-3.3-70b-versatile",
     max_completion_tokens: 800,
     messages: [{
       role: "user",
@@ -343,7 +343,7 @@ Return JSON only:
 
 async function callAudience(transcript: string, speakerName: string): Promise<AudienceResult> {
   const r = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "llama-3.3-70b-versatile",
     max_completion_tokens: 900,
     messages: [{
       role: "user",
@@ -384,7 +384,7 @@ Return JSON only — array of 3 personas:
 async function callImpactTimeline(transcript: string, duration: number): Promise<ImpactResult> {
   const stepSec = Math.max(10, Math.floor(duration / 20)); // max ~20 data points
   const r = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "llama-3.3-70b-versatile",
     max_completion_tokens: 600,
     messages: [{
       role: "user",
@@ -433,7 +433,7 @@ async function callDetailedAnalysis(
   const fillerSummary = Object.entries(fillerCounts).map(([w, c]) => `${w}×${c}`).join(", ") || "none detected";
 
   const r = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "llama-3.3-70b-versatile",
     max_completion_tokens: 1400,
     messages: [{
       role: "user",

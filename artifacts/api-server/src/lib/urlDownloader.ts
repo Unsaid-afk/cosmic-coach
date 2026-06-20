@@ -7,6 +7,17 @@ import { randomUUID } from "crypto";
 
 const execFileAsync = promisify(execFile);
 
+// WinGet usually installs to this directory on Windows
+const WINGET_LINKS_PATH = join(process.env.LOCALAPPDATA || "", "Microsoft", "WinGet", "Links");
+
+function getYtdlpPath() {
+  // On Windows, try the WinGet path if it exists
+  if (process.platform === "win32") {
+    return join(WINGET_LINKS_PATH, "yt-dlp.exe");
+  }
+  return "yt-dlp";
+}
+
 const YTDLP_SITES = [
   /youtube\.com/, /youtu\.be/,
   /vimeo\.com/,
@@ -45,7 +56,15 @@ async function downloadWithYtdlp(url: string): Promise<DownloadResult> {
   // Get title first (fast)
   let title: string | undefined;
   try {
-    const { stdout } = await execFileAsync("yt-dlp", ["--get-title", "--no-playlist", url], { timeout: 15000 });
+    const { stdout } = await execFileAsync(getYtdlpPath(), [
+      "--get-title",
+      "--no-playlist",
+      "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      url
+    ], {
+      timeout: 15000,
+      env: { ...process.env, PATH: `${process.env.PATH};${WINGET_LINKS_PATH}` }
+    });
     title = stdout.trim().slice(0, 120) || undefined;
   } catch {
     // ignore
@@ -53,17 +72,23 @@ async function downloadWithYtdlp(url: string): Promise<DownloadResult> {
 
   // Download audio only as mp3 (much faster than downloading video)
   await execFileAsync(
-    "yt-dlp",
+    getYtdlpPath(),
     [
       "--no-playlist",
       "--extract-audio",
       "--audio-format", "mp3",
-      "--audio-quality", "5",        // medium quality, faster
+      "--audio-quality", "5",
       "--max-filesize", "80m",
+      "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "--no-check-certificates",
+      "--geo-bypass",
       "--output", outPath,
       url,
     ],
-    { timeout: 120000 },
+    {
+      timeout: 120000,
+      env: { ...process.env, PATH: `${process.env.PATH};${WINGET_LINKS_PATH}` }
+    },
   );
 
   const buffer = await readFile(mp3Path);

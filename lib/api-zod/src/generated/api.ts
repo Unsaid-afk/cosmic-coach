@@ -30,6 +30,7 @@ export const ListSessionsResponseItem = zod.object({
   eyeContactScore: zod.number().describe("0-100 eye contact score"),
   confidenceScore: zod.number().describe("0-100 confidence score"),
   fillerWordCount: zod.number(),
+  errorMessage: zod.string().nullish(),
 });
 export const ListSessionsResponse = zod.array(ListSessionsResponseItem);
 
@@ -61,6 +62,7 @@ export const GetSessionResponse = zod.object({
   eyeContactScore: zod.number().describe("0-100 eye contact score"),
   confidenceScore: zod.number().describe("0-100 confidence score"),
   fillerWordCount: zod.number(),
+  errorMessage: zod.string().nullish(),
 });
 
 /**
@@ -255,6 +257,7 @@ export const GetDashboardStatsResponse = zod.object({
       eyeContactScore: zod.number().describe("0-100 eye contact score"),
       confidenceScore: zod.number().describe("0-100 confidence score"),
       fillerWordCount: zod.number(),
+      errorMessage: zod.string().nullish(),
     })
     .optional(),
   recentSessions: zod.array(
@@ -270,6 +273,7 @@ export const GetDashboardStatsResponse = zod.object({
       eyeContactScore: zod.number().describe("0-100 eye contact score"),
       confidenceScore: zod.number().describe("0-100 confidence score"),
       fillerWordCount: zod.number(),
+      errorMessage: zod.string().nullish(),
     }),
   ),
   scoreProgression: zod.array(

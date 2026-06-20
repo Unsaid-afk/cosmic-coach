@@ -44,13 +44,13 @@ export default function Dashboard() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-6"
+      className="space-y-4 sm:space-y-6"
     >
       <motion.div variants={item}>
-        <h1 className="text-3xl font-bold tracking-tight text-primary uppercase font-mono">Mission Control</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary uppercase font-mono">Mission Control</h1>
       </motion.div>
 
-      <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card className="bg-card/50 border-primary/20 backdrop-blur-xl hover:border-primary/50 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Sessions</CardTitle>
@@ -92,7 +92,7 @@ export default function Dashboard() {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <motion.div variants={item} className="lg:col-span-2">
           <Card className="bg-card/50 border-border/50 backdrop-blur-xl h-full">
             <CardHeader>

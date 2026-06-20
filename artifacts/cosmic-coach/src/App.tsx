@@ -4,11 +4,12 @@ import { shadcn } from "@clerk/themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router as WouterRouter, Switch, Route, Link, useLocation, Redirect } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Mic, LayoutDashboard, Plus, Settings, Crown, LogOut, User, ChevronDown, Shield } from "lucide-react";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu,
-  SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupContent,
+  SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupContent, SidebarTrigger
 } from "@/components/ui/sidebar";
 
 import Dashboard from "./pages/dashboard";
@@ -264,7 +265,16 @@ function Layout({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 flex flex-col relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
-          <div className="relative z-10 flex-1 overflow-auto p-6 md:p-8">
+          
+          <div className="md:hidden flex items-center p-4 border-b border-border/50 bg-card/30 backdrop-blur-md relative z-20">
+            <SidebarTrigger className="-ml-2 mr-2" />
+            <div className="flex items-center gap-2 font-bold text-lg text-primary font-mono">
+              <Mic className="w-5 h-5" />
+              <span>Cosmic Coach</span>
+            </div>
+          </div>
+
+          <div className="relative z-10 flex-1 overflow-auto p-4 sm:p-6 md:p-8">
             {children}
           </div>
         </main>
@@ -292,12 +302,53 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Layout><Component /></Layout>;
 }
 
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  const { isAdmin, isLoading } = usePremiumStatus();
+
+  if (!isLoaded || isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Loading</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
+  if (!isAdmin) return <Redirect to="/dashboard" />;
+
+  return <Layout><Component /></Layout>;
+}
+
 function HomeRedirect() {
   const { isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded) return <Landing />;
   if (isSignedIn) return <Redirect to="/dashboard" />;
   return <Landing />;
+}
+
+function BannedHandler() {
+  const { isError, error } = usePremiumStatus();
+  const { signOut } = useClerk();
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    if (isError && error?.message === "BANNED") {
+      signOut().then(() => {
+        toast({
+          title: "Account Banned",
+          description: "Your account has been permanently banned from Cosmic Coach.",
+          variant: "destructive"
+        });
+      });
+    }
+  }, [isError, error, signOut, toast]);
+  
+  return null;
 }
 
 function InnerRoutes() {
@@ -320,6 +371,7 @@ function InnerRoutes() {
       <QueryClientContext.Provider value={queryClient}>
         <QueryClientProvider client={queryClient}>
           <ClerkQueryClientCacheInvalidator />
+          <BannedHandler />
           <TooltipProvider>
             <Switch>
               <Route path="/" component={HomeRedirect} />
@@ -330,7 +382,7 @@ function InnerRoutes() {
               <Route path="/sessions/new" component={() => <ProtectedRoute component={NewSession} />} />
               <Route path="/sessions/:id" component={() => <ProtectedRoute component={SessionDetail} />} />
               <Route path="/sessions" component={() => <ProtectedRoute component={Sessions} />} />
-              <Route path="/admin" component={() => <ProtectedRoute component={AdminPage} />} />
+              <Route path="/admin" component={() => <AdminRoute component={AdminPage} />} />
               <Route component={NotFound} />
             </Switch>
             <Toaster />

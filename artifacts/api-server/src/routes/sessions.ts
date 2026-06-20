@@ -20,6 +20,7 @@ router.get("/sessions", async (req, res) => {
       eyeContactScore: s.eyeContactScore,
       confidenceScore: s.confidenceScore,
       fillerWordCount: s.fillerWordCount,
+      errorMessage: s.errorMessage,
     }));
     res.json(mapped);
   } catch (err) {
@@ -57,6 +58,7 @@ router.post("/sessions", async (req, res) => {
       eyeContactScore: session.eyeContactScore,
       confidenceScore: session.confidenceScore,
       fillerWordCount: session.fillerWordCount,
+      errorMessage: session.errorMessage,
     });
   } catch (err) {
     req.log.error(err);
@@ -82,6 +84,7 @@ router.get("/sessions/:id", async (req, res): Promise<void> => {
       eyeContactScore: session.eyeContactScore,
       confidenceScore: session.confidenceScore,
       fillerWordCount: session.fillerWordCount,
+      errorMessage: session.errorMessage,
     });
   } catch (err) {
     req.log.error(err);

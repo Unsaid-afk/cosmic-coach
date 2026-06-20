@@ -56,12 +56,12 @@ export default function Sessions() {
       animate="show"
       className="space-y-6 max-w-5xl mx-auto"
     >
-      <div className="flex justify-between items-center">
-        <motion.h1 variants={item} className="text-3xl font-bold tracking-tight text-primary uppercase font-mono">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <motion.h1 variants={item} className="text-2xl sm:text-3xl font-bold tracking-tight text-primary uppercase font-mono">
           Analysis Log
         </motion.h1>
         <motion.div variants={item}>
-          <Link href="/sessions/new" className="px-4 py-2 bg-primary/10 text-primary border border-primary/50 rounded hover:bg-primary/20 transition-colors uppercase font-mono text-sm tracking-wider flex items-center gap-2 shadow-[0_0_15px_rgba(0,102,255,0.3)]">
+          <Link href="/sessions/new" className="px-4 py-2 bg-primary/10 text-primary border border-primary/50 rounded hover:bg-primary/20 transition-colors uppercase font-mono text-sm tracking-wider flex items-center gap-2 shadow-[0_0_15px_rgba(0,102,255,0.3)] w-full sm:w-auto justify-center">
             <Mic className="w-4 h-4" />
             New Session
           </Link>
@@ -83,7 +83,14 @@ export default function Sessions() {
                         <Badge variant="outline" className="bg-chart-3/10 text-chart-3 border-chart-3/50 text-[10px] uppercase animate-pulse">Processing</Badge>
                       )}
                       {session.status === 'failed' && (
-                        <Badge variant="destructive" className="text-[10px] uppercase">Failed</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive" className="text-[10px] uppercase">Failed</Badge>
+                          {session.errorMessage && (
+                            <span className="text-xs text-destructive truncate max-w-[200px] sm:max-w-[300px]">
+                              {session.errorMessage.includes("429") ? "YouTube Rate Limit" : session.errorMessage}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -103,7 +110,7 @@ export default function Sessions() {
                   </div>
 
                   <div className="flex items-center gap-6 self-end md:self-auto w-full md:w-auto justify-between md:justify-end">
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end sm:items-center">
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Energy</span>
                       <Badge variant="outline" className={`${getEnergyColor(session.energyLevel)} text-[10px] uppercase font-mono mt-1`}>
                         <Activity className="w-3 h-3 mr-1" />

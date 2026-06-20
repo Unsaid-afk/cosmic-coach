@@ -73,7 +73,11 @@ function ProcessingView({ session }: { session: { title: string; speakerName: st
         {isFailed ? (
           <>
             <div className="text-destructive font-semibold mb-2">Analysis Failed</div>
-            <div className="text-sm text-muted-foreground">{session.errorMessage || "An error occurred during processing."}</div>
+            <div className="text-sm text-muted-foreground">
+              {session.errorMessage?.includes("429") 
+                ? "YouTube Rate Limit: YouTube has temporarily blocked downloads due to too many requests. Please try uploading a video file directly." 
+                : session.errorMessage || "An error occurred during processing."}
+            </div>
           </>
         ) : (
           <>

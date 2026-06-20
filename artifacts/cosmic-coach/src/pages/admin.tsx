@@ -1,7 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
-import { Shield, Users, LayoutList, TrendingUp, Crown } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Shield, Users, LayoutList, TrendingUp, Crown, MoreHorizontal, Edit2, Trash2, Ban } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface AdminStats {
   totalUsers: number;
@@ -14,6 +32,7 @@ interface AdminUser {
   email: string | null;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
+  isBanned: boolean;
   createdAt: string;
 }
 
@@ -46,7 +65,56 @@ async function fetchAdminSessions(): Promise<AdminSession[]> {
   return r.json() as Promise<AdminSession[]>;
 }
 
+async function toggleUserBan(id: string) {
+  const r = await fetch(`/api/admin/users/${id}/ban`, { method: "POST", credentials: "include" });
+  if (!r.ok) throw new Error("Failed to ban");
+  return r.json();
+}
+
+async function deleteUser(id: string) {
+  const r = await fetch(`/api/admin/users/${id}`, { method: "DELETE", credentials: "include" });
+  if (!r.ok) throw new Error("Failed to delete user");
+  return r.json();
+}
+
+async function editUser(data: { id: string; email: string }) {
+  const r = await fetch(`/api/admin/users/${data.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: data.email }),
+    credentials: "include"
+  });
+  if (!r.ok) throw new Error("Failed to edit user");
+  return r.json();
+}
+
+async function deleteSession(id: string) {
+  const r = await fetch(`/api/admin/sessions/${id}`, { method: "DELETE", credentials: "include" });
+  if (!r.ok) throw new Error("Failed to delete session");
+  return r.json();
+}
+
+async function editSession(data: { id: string; title: string; speakerName: string }) {
+  const r = await fetch(`/api/admin/sessions/${data.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: data.title, speakerName: data.speakerName }),
+    credentials: "include"
+  });
+  if (!r.ok) throw new Error("Failed to edit session");
+  return r.json();
+}
+
 export default function AdminPage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [editUserModal, setEditUserModal] = useState<AdminUser | null>(null);
+  const [editSessionModal, setEditSessionModal] = useState<AdminSession | null>(null);
+  const [newEmail, setNewEmail] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newSpeaker, setNewSpeaker] = useState("");
+
   const { data: stats, isError: statsError } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: fetchAdminStats,
@@ -61,6 +129,48 @@ export default function AdminPage() {
     queryKey: ["admin-sessions"],
     queryFn: fetchAdminSessions,
     retry: false,
+  });
+
+  const toggleBanMutation = useMutation({
+    mutationFn: toggleUserBan,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Ban status updated" });
+    }
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "User deleted" });
+    }
+  });
+
+  const editUserMutation = useMutation({
+    mutationFn: editUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      setEditUserModal(null);
+      toast({ title: "User updated" });
+    }
+  });
+
+  const deleteSessionMutation = useMutation({
+    mutationFn: deleteSession,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-sessions"] });
+      toast({ title: "Session deleted" });
+    }
+  });
+
+  const editSessionMutation = useMutation({
+    mutationFn: editSession,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-sessions"] });
+      setEditSessionModal(null);
+      toast({ title: "Session updated" });
+    }
   });
 
   if (statsError) {
@@ -139,12 +249,16 @@ export default function AdminPage() {
                     <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Email</th>
                     <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Plan</th>
                     <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Joined</th>
+                    <th className="text-right pb-2 text-muted-foreground font-mono font-normal">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
                   {users.map((u) => (
                     <tr key={u.id}>
-                      <td className="py-2 font-mono text-xs text-foreground/80">{u.email ?? "—"}</td>
+                      <td className="py-2 font-mono text-xs text-foreground/80">
+                        {u.email ?? "—"}
+                        {u.isBanned && <Badge variant="destructive" className="ml-2 text-[10px]">BANNED</Badge>}
+                      </td>
                       <td className="py-2">
                         {u.stripeSubscriptionId ? (
                           <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-xs">Pro</Badge>
@@ -154,6 +268,26 @@ export default function AdminPage() {
                       </td>
                       <td className="py-2 text-xs text-muted-foreground font-mono">
                         {new Date(u.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-2 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setEditUserModal(u); setNewEmail(u.email || ""); }}>
+                              <Edit2 className="mr-2 h-4 w-4" /> Edit Email
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleBanMutation.mutate(u.id)}>
+                              <Ban className="mr-2 h-4 w-4" /> {u.isBanned ? "Unban User" : "Ban User"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => deleteUserMutation.mutate(u.id)} className="text-red-500">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   ))}
@@ -182,7 +316,7 @@ export default function AdminPage() {
                     <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Speaker</th>
                     <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Score</th>
                     <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Status</th>
-                    <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Date</th>
+                    <th className="text-right pb-2 text-muted-foreground font-mono font-normal">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
@@ -201,8 +335,22 @@ export default function AdminPage() {
                           {s.status}
                         </Badge>
                       </td>
-                      <td className="py-2 text-xs text-muted-foreground font-mono">
-                        {new Date(s.createdAt).toLocaleDateString()}
+                      <td className="py-2 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setEditSessionModal(s); setNewTitle(s.title); setNewSpeaker(s.speakerName); }}>
+                              <Edit2 className="mr-2 h-4 w-4" /> Edit Session
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => deleteSessionMutation.mutate(s.id)} className="text-red-500">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete Session
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   ))}
@@ -212,6 +360,48 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editUserModal} onOpenChange={(open) => !open && setEditUserModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Email Address</Label>
+              <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUserModal(null)}>Cancel</Button>
+            <Button onClick={() => editUserModal && editUserMutation.mutate({ id: editUserModal.id, email: newEmail })}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Session Dialog */}
+      <Dialog open={!!editSessionModal} onOpenChange={(open) => !open && setEditSessionModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Session</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Speaker Name</Label>
+              <Input value={newSpeaker} onChange={(e) => setNewSpeaker(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditSessionModal(null)}>Cancel</Button>
+            <Button onClick={() => editSessionModal && editSessionMutation.mutate({ id: editSessionModal.id, title: newTitle, speakerName: newSpeaker })}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
