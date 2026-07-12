@@ -121,7 +121,7 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-chart-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold text-foreground capitalize">{stats.mostImprovedMetric.replace(/([A-Z])/g, ' $1').trim()}</div>
+            <div className="text-lg font-bold text-foreground capitalize">{(stats.mostImprovedMetric || "").replace(/([A-Z])/g, ' $1').trim()}</div>
           </CardContent>
         </Card>
       </motion.div>

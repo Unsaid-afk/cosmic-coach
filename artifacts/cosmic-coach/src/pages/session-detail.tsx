@@ -216,7 +216,7 @@ export default function SessionDetail() {
         </div>
         <div className="flex items-center gap-6">
           <div className="flex flex-col items-end gap-2">
-            <ExportPDFButton targetId="session-report-container" filename={`Analysis-${session.title.replace(/\s+/g, "-")}`} />
+            <ExportPDFButton targetId="session-report-container" filename={`Analysis-${(session.title || "Session").replace(/\s+/g, "-")}`} />
             <div className="text-right">
               <div className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground mb-1">Overall Score</div>
               <div className="text-4xl font-black text-primary drop-shadow-[0_0_10px_rgba(0,102,255,0.5)]">
@@ -507,7 +507,7 @@ export default function SessionDetail() {
                       </div>
                       <div>
                         <div className="font-bold text-sm text-foreground">{persona.name}</div>
-                        <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{persona.role.replace("_", " ")}</div>
+                        <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{(persona.role || "").replace("_", " ")}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
