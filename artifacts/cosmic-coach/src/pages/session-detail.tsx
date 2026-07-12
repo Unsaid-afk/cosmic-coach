@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ExportPDFButton } from "@/components/ExportPDFButton";
 
 const container = {
   hidden: { opacity: 0 },
@@ -196,7 +197,7 @@ export default function SessionDetail() {
   const durationSec = Math.floor(session.duration % 60);
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6" id="session-report-container">
 
       {/* HEADER */}
       <motion.div variants={item} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-border/50 pb-6">
@@ -214,10 +215,13 @@ export default function SessionDetail() {
           </div>
         </div>
         <div className="flex items-center gap-6">
-          <div className="text-right">
-            <div className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground mb-1">Overall Score</div>
-            <div className="text-4xl font-black text-primary drop-shadow-[0_0_10px_rgba(0,102,255,0.5)]">
-              {Math.round(session.overallScore)}
+          <div className="flex flex-col items-end gap-2">
+            <ExportPDFButton targetId="session-report-container" filename={`Analysis-${session.title.replace(/\s+/g, "-")}`} />
+            <div className="text-right">
+              <div className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground mb-1">Overall Score</div>
+              <div className="text-4xl font-black text-primary drop-shadow-[0_0_10px_rgba(0,102,255,0.5)]">
+                {Math.round(session.overallScore)}
+              </div>
             </div>
           </div>
         </div>

@@ -1,13 +1,11 @@
-import { Router, type Request, type Response } from "express";
-import { db, usersTable, sessionsTable } from "@workspace/db";
-import { desc, sql, count } from "drizzle-orm";
+import { Router, type Request, type Response, type NextFunction } from "express";
+import { db, usersTable, sessionsTable, enterpriseContractsTable } from "@workspace/db";
+import { desc, sql, count, eq } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
 import { isAdminEmail } from "../lib/adminUtils.js";
 import { getAuth } from "@clerk/express";
 
 const router = Router();
-
-import { eq } from "drizzle-orm";
 
 async function requireAdmin(req: Request, res: Response, next: import("express").NextFunction): Promise<void> {
   const auth = getAuth(req);
@@ -181,6 +179,60 @@ router.put("/admin/sessions/:id", requireAdmin, async (req: Request, res: Respon
     res.json({ success: true });
   } catch (err) {
     req.log.error({ err }, "Edit session failed");
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// --- Enterprise Contracts ---
+
+router.get("/admin/contracts", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const contracts = await db
+      .select({
+        id: enterpriseContractsTable.id,
+        userId: enterpriseContractsTable.userId,
+        pricePerMonth: enterpriseContractsTable.pricePerMonth,
+        sessionQuota: enterpriseContractsTable.sessionQuota,
+        status: enterpriseContractsTable.status,
+        createdAt: enterpriseContractsTable.createdAt,
+        email: usersTable.email,
+      })
+      .from(enterpriseContractsTable)
+      .innerJoin(usersTable, eq(enterpriseContractsTable.userId, usersTable.id))
+      .orderBy(desc(enterpriseContractsTable.createdAt));
+
+    res.json(contracts);
+  } catch (err) {
+    req.log.error({ err }, "Get contracts failed");
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/admin/contracts", requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, pricePerMonth, sessionQuota } = req.body;
+    
+    // Find user by email
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    // Create contract
+    const [contract] = await db.insert(enterpriseContractsTable).values({
+      userId: user.id,
+      pricePerMonth: parseInt(pricePerMonth, 10),
+      sessionQuota: parseInt(sessionQuota, 10),
+      status: "active",
+    }).returning();
+
+    // Set isEnterpriseContract on user
+    await db.update(usersTable).set({ isEnterpriseContract: true }).where(eq(usersTable.id, user.id));
+
+    res.json({ success: true, contract });
+  } catch (err) {
+    req.log.error({ err }, "Create contract failed");
     res.status(500).json({ error: "Server error" });
   }
 });

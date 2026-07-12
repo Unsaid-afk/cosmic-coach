@@ -7,29 +7,27 @@ import { usePremiumStatus } from "@/hooks/usePremiumStatus";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-const FREE_FEATURES = [
-  "3 sessions per month",
-  "File upload (up to 25 MB)",
-  "Video URL analysis",
-  "Filler word detection",
-  "Basic AI scoring",
-  "Audience personas (3 types)",
-  "Impact timeline",
-  "Waveform visualization",
+const STARTER_FEATURES = [
+  "Core GPT-4o video processing engine",
+  "Standard \"Closing Score\" framework breakdown",
+  "Standard queue priority status",
+  "Web-based dashboard performance insights",
+  "Automated system updates & email-only support",
 ];
 
-const PRO_FEATURES = [
-  "Unlimited sessions",
-  "Files up to 100 MB",
-  "Priority URL analysis",
-  "Full filler word breakdown",
-  "5 parallel AI analysis calls",
-  "Detailed per-metric coaching",
-  "Opening & closing strength",
-  "Vocabulary complexity score",
-  "Call-to-action assessment",
-  "Persuasion framework scoring",
-  "7-day free trial",
+const PREMIUM_FEATURES = [
+  "High-volume optimization allocation",
+  "Priority processing pipeline queue acceleration",
+  "Deep-dive technical structural flaw audits",
+  "White-labeled PDF report generation and exports",
+  "Multi-role rep tracking capability",
+];
+
+const ENTERPRISE_FEATURES = [
+  "Bespoke operational usage caps",
+  "Multi-user team workspace infrastructure",
+  "Dedicated reporting endpoints",
+  "Custom contract billing support",
 ];
 
 export default function PricingPage() {
@@ -69,15 +67,36 @@ export default function PricingPage() {
     }
   };
 
+  const handleManageBilling = async () => {
+    setLoading(true);
+    try {
+      const resp = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      const data = await resp.json() as { url?: string; error?: string };
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error ?? "Failed to open billing portal");
+      }
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
 
       <nav className="relative z-10 flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
         <Link href="/">
-          <div className="flex items-center gap-2 font-bold text-lg text-primary font-mono cursor-pointer">
-            <Mic className="w-5 h-5" />
-            <span>COSMIC COACH</span>
+          <div className="flex items-center gap-2 font-bold text-xl text-primary font-mono cursor-pointer">
+            <Mic className="w-6 h-6" />
+            <span>CLOSING CLARITY</span>
           </div>
         </Link>
         <div className="flex items-center gap-3">
@@ -110,29 +129,33 @@ export default function PricingPage() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-          {/* Free */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Starter */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-xl p-8"
+            className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-xl p-8 flex flex-col"
           >
             <div className="mb-6">
-              <div className="text-sm font-mono uppercase tracking-widest text-muted-foreground mb-2">Free</div>
-              <div className="text-4xl font-black text-foreground">$0<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
-              <div className="text-sm text-muted-foreground mt-1">Forever free, no card needed</div>
+              <div className="text-sm font-mono uppercase tracking-widest text-muted-foreground mb-2">Starter</div>
+              <div className="text-4xl font-black text-foreground">$49<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
+              <div className="text-sm text-muted-foreground mt-1">10 sessions per month</div>
             </div>
-            <ul className="space-y-2.5 mb-8">
-              {FREE_FEATURES.map((f) => (
+            <ul className="space-y-2.5 mb-8 flex-1">
+              {STARTER_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
                   <CheckCircle className="w-4 h-4 text-muted-foreground/60 mt-0.5 shrink-0" />
                   {f}
                 </li>
               ))}
             </ul>
-            {isSignedIn ? (
-              <Link href="/dashboard">
+            {isSignedIn && !isPremium ? (
+              <Button disabled className="w-full font-mono text-xs uppercase tracking-widest border-border/50">
+                Current Plan
+              </Button>
+            ) : isSignedIn && isPremium ? (
+               <Link href="/dashboard">
                 <Button variant="outline" className="w-full font-mono text-xs uppercase tracking-widest border-border/50">
                   Go to Dashboard
                 </Button>
@@ -146,29 +169,29 @@ export default function PricingPage() {
             )}
           </motion.div>
 
-          {/* Pro */}
+          {/* Premium */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="rounded-2xl border border-primary/40 bg-card/60 backdrop-blur-xl p-8 relative overflow-hidden shadow-[0_0_40px_rgba(0,102,255,0.1)]"
+            className="rounded-2xl border border-primary/40 bg-card/60 backdrop-blur-xl p-8 relative overflow-hidden shadow-[0_0_40px_rgba(0,102,255,0.1)] flex flex-col"
           >
             <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
             <div className="absolute top-4 right-4">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-xs font-mono text-primary uppercase tracking-widest">
                 <Crown className="w-3 h-3" />
-                Pro
+                Premium
               </div>
             </div>
 
             <div className="mb-6">
-              <div className="text-sm font-mono uppercase tracking-widest text-primary mb-2">Pro</div>
-              <div className="text-4xl font-black text-foreground">$19<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
-              <div className="text-sm text-emerald-400 mt-1 font-mono">7-day free trial · cancel anytime</div>
+              <div className="text-sm font-mono uppercase tracking-widest text-primary mb-2">Premium</div>
+              <div className="text-4xl font-black text-foreground">$249<span className="text-lg font-normal text-muted-foreground">/mo</span></div>
+              <div className="text-sm text-emerald-400 mt-1 font-mono">80 sessions per month</div>
             </div>
 
-            <ul className="space-y-2.5 mb-8">
-              {PRO_FEATURES.map((f) => (
+            <ul className="space-y-2.5 mb-8 flex-1">
+              {PREMIUM_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm text-foreground">
                   <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   {f}
@@ -178,10 +201,11 @@ export default function PricingPage() {
 
             {isPremium ? (
               <Button
-                disabled
-                className="w-full font-mono text-xs uppercase tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                onClick={handleManageBilling}
+                disabled={loading}
+                className="w-full font-mono text-xs uppercase tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
               >
-                <CheckCircle className="mr-2 w-4 h-4" /> Current Plan
+                {loading ? "Loading..." : "Manage Billing"}
               </Button>
             ) : (
               <Button
@@ -190,10 +214,35 @@ export default function PricingPage() {
                 className="w-full font-mono text-xs uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(0,102,255,0.3)]"
               >
                 {loading ? "Loading..." : (
-                  <><Zap className="mr-2 w-4 h-4" /> Start Free Trial <ArrowRight className="ml-2 w-4 h-4" /></>
+                  <><Zap className="mr-2 w-4 h-4" /> Start Premium <ArrowRight className="ml-2 w-4 h-4" /></>
                 )}
               </Button>
             )}
+          </motion.div>
+
+          {/* Enterprise */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-xl p-8 flex flex-col"
+          >
+            <div className="mb-6">
+              <div className="text-sm font-mono uppercase tracking-widest text-muted-foreground mb-2">Enterprise</div>
+              <div className="text-4xl font-black text-foreground">Custom</div>
+              <div className="text-sm text-muted-foreground mt-1">Volume-Based sessions</div>
+            </div>
+            <ul className="space-y-2.5 mb-8 flex-1">
+              {ENTERPRISE_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="w-4 h-4 text-muted-foreground/60 mt-0.5 shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Button variant="outline" className="w-full font-mono text-xs uppercase tracking-widest border-border/50" onClick={() => window.location.href="mailto:sales@closingclarity.com"}>
+              Contact Sales
+            </Button>
           </motion.div>
         </div>
 

@@ -9,6 +9,8 @@ import {
   analyzeTranscriptWithAI,
   markGoldenMomentsInSegments,
 } from "../lib/speechAnalysis.js";
+import { requireAuth } from "../middlewares/auth.js";
+import { getUserQuota } from "../lib/quota.js";
 
 const router = Router();
 
@@ -27,8 +29,9 @@ const upload = multer({
 });
 
 // POST /api/sessions - create session with optional file
-router.post("/sessions/upload", upload.single("media"), async (req, res): Promise<void> => {
+router.post("/sessions/upload", requireAuth, upload.single("media"), async (req, res): Promise<void> => {
   const log = req.log;
+  const userId = req.userId!;
   const { title, speakerName } = req.body as { title?: string; speakerName?: string };
 
   if (!title || !speakerName) {
@@ -41,10 +44,17 @@ router.post("/sessions/upload", upload.single("media"), async (req, res): Promis
     return;
   }
 
+  const quota = await getUserQuota(userId);
+  if (quota.used >= quota.limit) {
+    res.status(403).json({ error: "QUOTA_EXCEEDED" });
+    return;
+  }
+
   // Create session immediately with "processing" status
   const [session] = await db
     .insert(sessionsTable)
     .values({
+      userId,
       title,
       speakerName,
       duration: 0,

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { useAuth } from "@clerk/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -18,6 +20,12 @@ import { getListSessionsQueryKey } from "@workspace/api-client-react";
 const baseSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
   speakerName: z.string().min(2, "Speaker name is required"),
+  agreeToTerms: z.literal(true, {
+    errorMap: () => ({ message: "You must acknowledge that Closing Clarity is a B2B productivity tool and agree to the Terms of Service." }),
+  }),
+  hasConsent: z.literal(true, {
+    errorMap: () => ({ message: "You must warrant that you have the required corporate authority and legal consents to upload these sales records." }),
+  }),
 });
 
 const ACCEPTED_TYPES = [
@@ -58,6 +66,7 @@ export default function NewSession() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   const [tab, setTab] = useState<Tab>("upload");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,7 +77,15 @@ export default function NewSession() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [stage, setStage] = useState<"idle" | "uploading" | "downloading" | "processing">("idle");
 
-  const form = useForm({ resolver: zodResolver(baseSchema as any), defaultValues: { title: "", speakerName: "" } });
+  const form = useForm({ 
+    resolver: zodResolver(baseSchema as any), 
+    defaultValues: { 
+      title: "", 
+      speakerName: "", 
+      agreeToTerms: undefined as unknown as true, 
+      hasConsent: undefined as unknown as true,
+    } 
+  });
 
   const validateAndSetFile = useCallback((f: File) => {
     if (!ACCEPTED_TYPES.includes(f.type)) {
@@ -107,6 +124,28 @@ export default function NewSession() {
 
     setIsSubmitting(true);
 
+    const handleQuotaExceeded = async (token: string | null) => {
+      toast({ title: "Quota Exceeded", description: "You have reached your session limit. Redirecting to billing...", variant: "destructive" });
+      try {
+        const resp = await fetch("/api/billing/portal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
+        });
+        if (!resp.ok) {
+          setLocation("/pricing");
+          return;
+        }
+        const data = await resp.json() as { url?: string };
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          setLocation("/pricing");
+        }
+      } catch {
+        setLocation("/pricing");
+      }
+    };
+
     try {
       let sessionData: { id: string };
 
@@ -119,9 +158,11 @@ export default function NewSession() {
         formData.append("speakerName", data.speakerName);
         formData.append("media", file!);
 
+        const token = await getToken();
         sessionData = await new Promise<{ id: string }>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open("POST", "/api/sessions/upload");
+          if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
           xhr.upload.addEventListener("progress", (e) => {
             if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
           });
@@ -140,13 +181,21 @@ export default function NewSession() {
       } else {
         // ── URL path ──────────────────────────────────────────────────────────
         setStage("downloading");
+        const urlToken = await getToken();
         const resp = await fetch("/api/sessions/from-url", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(urlToken ? { "Authorization": `Bearer ${urlToken}` } : {}),
+          },
           body: JSON.stringify({ title: data.title, speakerName: data.speakerName, url: videoUrl.trim() }),
         });
         if (!resp.ok) {
           const body = await resp.json().catch(() => ({})) as Record<string, string>;
+          if (body.error === "QUOTA_EXCEEDED") {
+            await handleQuotaExceeded(urlToken);
+            return;
+          }
           throw new Error(body.error ?? "Failed to start analysis");
         }
         sessionData = await resp.json() as { id: string };
@@ -157,7 +206,12 @@ export default function NewSession() {
       toast({ title: "Analysis started", description: "AI is processing your recording. Results appear automatically." });
       setLocation(`/sessions/${sessionData.id}`);
     } catch (err) {
-      toast({ title: "Failed", description: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
+      if (err instanceof Error && (err.message === "QUOTA_EXCEEDED" || err.message === "QUOTA_EXCEEDED")) {
+        const t = await getToken();
+        await handleQuotaExceeded(t);
+      } else {
+        toast({ title: "Failed", description: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
+      }
       setIsSubmitting(false);
       setStage("idle");
     }
@@ -388,9 +442,47 @@ export default function NewSession() {
                   )}
                 </AnimatePresence>
 
+                {/* ── Consent Checkboxes ────────────────────────────────── */}
+                {!isSubmitting && (
+                  <div className="space-y-3 border-t border-border/30 pt-4">
+                    <FormField control={form.control} name="agreeToTerms" render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value === true}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-xs text-muted-foreground cursor-pointer">
+                            I acknowledge that Closing Clarity is a B2B productivity tool and agree to the Terms of Service.
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="hasConsent" render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value === true}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-xs text-muted-foreground cursor-pointer">
+                            I explicitly warrant that I have the required corporate authority and legal consents to upload these sales records for automated AI data analysis and third-party API processing.
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )} />
+                  </div>
+                )}
+
                 {/* ── Footer ─────────────────────────────────────────────── */}
                 {!isSubmitting && (
-                  <div className="text-xs text-muted-foreground/50 font-mono border-t border-border/30 pt-4">
+                  <div className="text-xs text-muted-foreground/50 font-mono pt-3">
                     Powered by OpenAI Whisper · GPT-4o-mini analysis · 4 parallel AI calls
                   </div>
                 )}

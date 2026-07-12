@@ -47,6 +47,16 @@ interface AdminSession {
   overallScore: number;
 }
 
+interface AdminContract {
+  id: number;
+  userId: string;
+  email: string | null;
+  pricePerMonth: number;
+  sessionQuota: number;
+  status: string;
+  createdAt: string;
+}
+
 async function fetchAdminStats(): Promise<AdminStats> {
   const r = await fetch("/api/admin/stats", { credentials: "include" });
   if (!r.ok) throw new Error("Forbidden");
@@ -63,6 +73,12 @@ async function fetchAdminSessions(): Promise<AdminSession[]> {
   const r = await fetch("/api/admin/sessions", { credentials: "include" });
   if (!r.ok) throw new Error("Forbidden");
   return r.json() as Promise<AdminSession[]>;
+}
+
+async function fetchAdminContracts(): Promise<AdminContract[]> {
+  const r = await fetch("/api/admin/contracts", { credentials: "include" });
+  if (!r.ok) throw new Error("Forbidden");
+  return r.json() as Promise<AdminContract[]>;
 }
 
 async function toggleUserBan(id: string) {
@@ -115,6 +131,10 @@ export default function AdminPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newSpeaker, setNewSpeaker] = useState("");
 
+  const [contractEmail, setContractEmail] = useState("");
+  const [contractPrice, setContractPrice] = useState("");
+  const [contractQuota, setContractQuota] = useState("");
+
   const { data: stats, isError: statsError } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: fetchAdminStats,
@@ -128,6 +148,11 @@ export default function AdminPage() {
   const { data: sessions = [] } = useQuery({
     queryKey: ["admin-sessions"],
     queryFn: fetchAdminSessions,
+    retry: false,
+  });
+  const { data: contracts = [] } = useQuery({
+    queryKey: ["admin-contracts"],
+    queryFn: fetchAdminContracts,
     retry: false,
   });
 
@@ -170,6 +195,31 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-sessions"] });
       setEditSessionModal(null);
       toast({ title: "Session updated" });
+    }
+  });
+
+  const createContractMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/admin/contracts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: contractEmail, pricePerMonth: contractPrice, sessionQuota: contractQuota }),
+        credentials: "include"
+      });
+      if (!r.ok) {
+        const body = await r.json();
+        throw new Error(body.error || "Failed");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-contracts"] });
+      setContractEmail("");
+      setContractPrice("");
+      setContractQuota("");
+      toast({ title: "Contract created successfully" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   });
 
@@ -231,6 +281,52 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base font-mono flex items-center gap-2">
+            <Crown className="w-4 h-4 text-primary" /> Enterprise Contracts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2 mb-4">
+            <Input placeholder="User Email" value={contractEmail} onChange={(e) => setContractEmail(e.target.value)} className="bg-background" />
+            <Input placeholder="Price (Cents)" value={contractPrice} onChange={(e) => setContractPrice(e.target.value)} className="bg-background" />
+            <Input placeholder="Quota" value={contractQuota} onChange={(e) => setContractQuota(e.target.value)} className="bg-background" />
+            <Button disabled={!contractEmail || !contractPrice || !contractQuota || createContractMutation.isPending} onClick={() => createContractMutation.mutate()} className="shrink-0 font-mono text-xs uppercase tracking-widest">
+              Create Contract
+            </Button>
+          </div>
+          {contracts.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">No active contracts</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Email</th>
+                    <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Monthly Price</th>
+                    <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Quota</th>
+                    <th className="text-left pb-2 text-muted-foreground font-mono font-normal">Created At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {contracts.map((c) => (
+                    <tr key={c.id}>
+                      <td className="py-2 font-mono text-xs text-foreground/80">{c.email}</td>
+                      <td className="py-2 text-xs font-mono">${(c.pricePerMonth / 100).toFixed(2)}</td>
+                      <td className="py-2 text-xs font-mono">{c.sessionQuota}</td>
+                      <td className="py-2 text-xs text-muted-foreground font-mono">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="bg-card/50 border-border/50">
         <CardHeader>

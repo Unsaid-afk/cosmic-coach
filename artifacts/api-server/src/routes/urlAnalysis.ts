@@ -9,12 +9,15 @@ import {
   markGoldenMomentsInSegments,
 } from "../lib/speechAnalysis.js";
 import { downloadMediaFromUrl } from "../lib/urlDownloader.js";
+import { requireAuth } from "../middlewares/auth.js";
+import { getUserQuota } from "../lib/quota.js";
 
 const router = Router();
 
 // POST /api/sessions/from-url
-router.post("/sessions/from-url", async (req, res): Promise<void> => {
+router.post("/sessions/from-url", requireAuth, async (req, res): Promise<void> => {
   const log = req.log;
+  const userId = req.userId!;
   const { title, speakerName, url } = req.body as {
     title?: string;
     speakerName?: string;
@@ -38,10 +41,17 @@ router.post("/sessions/from-url", async (req, res): Promise<void> => {
     return;
   }
 
+  const quota = await getUserQuota(userId);
+  if (quota.used >= quota.limit) {
+    res.status(403).json({ error: "QUOTA_EXCEEDED" });
+    return;
+  }
+
   // Create session immediately
   const [session] = await db
     .insert(sessionsTable)
     .values({
+      userId,
       title,
       speakerName,
       duration: 0,

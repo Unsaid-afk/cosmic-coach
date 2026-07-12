@@ -153,30 +153,45 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const file = new File([new Blob([audioBuffer as any], { type: mimeType })], `audio.${ext}`, { type: mimeType });
 
-  // gpt-4o-mini-transcribe only supports "json" or "text" — no verbose_json / word timestamps
+  // gpt-4o-mini-transcribe only supports "json" or "text", but whisper-1 supports "verbose_json" with word timestamps
   const response = await openai.audio.transcriptions.create({
     file,
-    model: "whisper-large-v3",
-    response_format: "json",
-  } as Parameters<typeof openai.audio.transcriptions.create>[0]);
+    model: "whisper-1",
+    response_format: "verbose_json",
+    timestamp_granularities: ["word"],
+  });
 
-  const text: string = typeof response === "string"
-    ? response
-    : (response as unknown as { text: string }).text ?? "";
+  const respData = response as any;
+  const text: string = respData.text ?? "";
+  
+  const rawWords = respData.words ?? [];
+  let duration = respData.duration ?? 0;
 
-  // Synthesize word-level timing from plain text.
-  // Assumed pace of 130 WPM — consistent with conversational speech.
-  const rawWords = text.split(/\s+/).filter(Boolean);
-  const secPerWord = 60 / 130;
-
-  const words: TranscriptWord[] = rawWords.map((word, i) => ({
-    word,
-    start: Math.round(i * secPerWord * 100) / 100,
-    end: Math.round((i + 1) * secPerWord * 100) / 100,
-    probability: 0.9,
-  }));
-
-  const duration = Math.round(rawWords.length * secPerWord * 10) / 10;
+  let words: TranscriptWord[] = [];
+  if (rawWords.length > 0) {
+    words = rawWords.map((w: any) => ({
+      word: w.word,
+      start: w.start,
+      end: w.end,
+      probability: 0.9, // whisper-1 does not return probabilities by default
+    }));
+    if (duration === 0) {
+      duration = words[words.length - 1].end;
+    }
+  } else {
+    // Fallback if no words array returned for some reason
+    const fallbackWords = text.split(/\s+/).filter(Boolean);
+    const secPerWord = 60 / 130;
+    words = fallbackWords.map((word, i) => ({
+      word,
+      start: Math.round(i * secPerWord * 100) / 100,
+      end: Math.round((i + 1) * secPerWord * 100) / 100,
+      probability: 0.9,
+    }));
+    if (duration === 0) {
+      duration = Math.round(fallbackWords.length * secPerWord * 10) / 10;
+    }
+  }
 
   return { text, words, duration };
 }
@@ -281,7 +296,7 @@ function safeNum(v: unknown, fallback: number) { const n = Number(v); return isN
 
 async function callScoring(transcript: string, wpm: number, fillerCount: number, speakerName: string): Promise<ScoringResult> {
   const r = await openai.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "gpt-4o-mini",
     max_completion_tokens: 600,
     messages: [{
       role: "user",
@@ -310,7 +325,7 @@ Return JSON only:
 
 async function callPersuasion(transcript: string): Promise<PersuasionResult> {
   const r = await openai.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "gpt-4o-mini",
     max_completion_tokens: 800,
     messages: [{
       role: "user",
@@ -343,7 +358,7 @@ Return JSON only:
 
 async function callAudience(transcript: string, speakerName: string): Promise<AudienceResult> {
   const r = await openai.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "gpt-4o-mini",
     max_completion_tokens: 900,
     messages: [{
       role: "user",
@@ -384,7 +399,7 @@ Return JSON only — array of 3 personas:
 async function callImpactTimeline(transcript: string, duration: number): Promise<ImpactResult> {
   const stepSec = Math.max(10, Math.floor(duration / 20)); // max ~20 data points
   const r = await openai.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "gpt-4o-mini",
     max_completion_tokens: 600,
     messages: [{
       role: "user",
@@ -433,7 +448,7 @@ async function callDetailedAnalysis(
   const fillerSummary = Object.entries(fillerCounts).map(([w, c]) => `${w}×${c}`).join(", ") || "none detected";
 
   const r = await openai.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "gpt-4o-mini",
     max_completion_tokens: 1400,
     messages: [{
       role: "user",

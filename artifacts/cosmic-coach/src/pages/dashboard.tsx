@@ -2,9 +2,10 @@ import { useGetDashboardStats } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { Activity, Trophy, Zap, TrendingUp, Presentation } from "lucide-react";
+import { Activity, Trophy, Zap, TrendingUp, Presentation, Mic, ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 
 const container = {
   hidden: { opacity: 0 },
@@ -37,7 +38,40 @@ export default function Dashboard() {
     );
   }
 
-  if (!stats) return null;
+  if (!stats || stats.totalSessions === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-center justify-center min-h-[60vh] text-center"
+      >
+        <div className="relative mb-8">
+          <div className="w-24 h-24 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center animate-glow-pulse">
+            <Mic className="w-12 h-12 text-primary/60" />
+          </div>
+          <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-secondary" />
+          </div>
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground mb-3">Welcome to Mission Control</h1>
+        <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
+          This is where your speech coaching journey begins. Upload a recording or paste a video link to get your first AI-powered analysis.
+        </p>
+        <Link href="/sessions/new">
+          <Button className="h-12 px-8 font-mono text-sm uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_30px_rgba(0,102,255,0.4)] transition-all">
+            <Zap className="mr-2 w-4 h-4" /> Start Your First Session <ArrowRight className="ml-2 w-4 h-4" />
+          </Button>
+        </Link>
+        <div className="mt-6 flex items-center gap-6 text-xs text-muted-foreground/50 font-mono">
+          <span>Upload a file</span>
+          <span className="text-muted-foreground/20">|</span>
+          <span>Paste a YouTube link</span>
+          <span className="text-muted-foreground/20">|</span>
+          <span>Results in 60s</span>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 

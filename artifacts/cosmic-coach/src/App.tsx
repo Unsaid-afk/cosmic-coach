@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import { ClerkProvider, useAuth, useClerk, useUser } from "@clerk/react";
+import { ClerkProvider, useAuth, useClerk, useUser, AuthenticateWithRedirectCallback } from "@clerk/react";
 import { shadcn } from "@clerk/themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router as WouterRouter, Switch, Route, Link, useLocation, Redirect } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Mic, LayoutDashboard, Plus, Settings, Crown, LogOut, User, ChevronDown, Shield } from "lucide-react";
+import { Mic, LayoutDashboard, Plus, Settings, Crown, LogOut, User, ChevronDown, Shield, FolderGit } from "lucide-react";
 import {
   SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarMenu,
   SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupContent, SidebarTrigger
@@ -16,12 +16,36 @@ import Dashboard from "./pages/dashboard";
 import Sessions from "./pages/sessions";
 import NewSession from "./pages/new-session";
 import SessionDetail from "./pages/session-detail";
-import NotFound from "./pages/not-found";
-import Landing from "./pages/landing";
-import SignInPage from "./pages/sign-in";
-import SignUpPage from "./pages/sign-up";
 import PricingPage from "./pages/pricing";
 import AdminPage from "./pages/admin";
+import Workspace from "./pages/workspace";
+import JoinTeam from "./pages/join-team";
+import NotFound from "./pages/not-found";
+import Landing from "./pages/landing";
+import TermsPage from "./pages/terms";
+import PrivacyPage from "./pages/privacy";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
+
+function AuthSync() {
+  const { getToken } = useAuth();
+  
+  // Set synchronously so it's ready before child queries run
+  setAuthTokenGetter(async () => {
+    try {
+      return await getToken();
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    return () => setAuthTokenGetter(null);
+  }, []);
+
+  return null;
+}
+import SignInPage from "./pages/sign-in";
+import SignUpPage from "./pages/sign-up";
 import { usePremiumStatus } from "./hooks/usePremiumStatus";
 
 const queryClient = new QueryClient();
@@ -153,7 +177,7 @@ function UserMenu() {
                 onClick={() => { setOpen(false); setLocation("/pricing"); }}
                 className="flex items-center gap-2 w-full px-3 py-2.5 text-xs font-mono text-amber-400 hover:bg-amber-400/5 transition-colors border-b border-border/30"
               >
-                <Crown className="w-3.5 h-3.5" /> Upgrade to Pro
+                <Crown className="w-3.5 h-3.5" /> Upgrade to Premium
               </button>
             )}
             <button
@@ -179,7 +203,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <SidebarHeader className="p-4 border-b border-border/50">
             <div className="flex items-center gap-2 font-bold text-xl text-primary font-mono">
               <Mic className="w-6 h-6" />
-              <span>Cosmic Coach</span>
+              <span>Closing Clarity</span>
             </div>
           </SidebarHeader>
           <SidebarContent className="flex flex-col h-full">
@@ -191,6 +215,14 @@ function Layout({ children }: { children: React.ReactNode }) {
                       <Link href="/dashboard" className="flex items-center gap-3 w-full">
                         <LayoutDashboard className="w-4 h-4" />
                         <span>Dashboard</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/workspace" className="flex items-center gap-3 w-full">
+                        <FolderGit className="w-4 h-4" />
+                        <span>Workspace</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -238,9 +270,9 @@ function Layout({ children }: { children: React.ReactNode }) {
                   <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 hover:bg-amber-500/10 transition-colors cursor-pointer">
                     <div className="flex items-center gap-2 mb-1">
                       <Crown className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-xs font-mono text-amber-400 uppercase tracking-wider">Upgrade to Pro</span>
+                      <span className="text-xs font-mono text-amber-400 uppercase tracking-wider">Upgrade to Premium</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground/70">7-day free trial · $19/mo</p>
+                    <p className="text-[10px] text-muted-foreground/70">80 sessions · $249/mo</p>
                   </div>
                 </Link>
               </div>
@@ -265,12 +297,13 @@ function Layout({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 flex flex-col relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none" />
+          <div className="absolute inset-0 bg-dot-pattern pointer-events-none" />
           
           <div className="md:hidden flex items-center p-4 border-b border-border/50 bg-card/30 backdrop-blur-md relative z-20">
             <SidebarTrigger className="-ml-2 mr-2" />
             <div className="flex items-center gap-2 font-bold text-lg text-primary font-mono">
-              <Mic className="w-5 h-5" />
-              <span>Cosmic Coach</span>
+              <Mic className="w-5 h-5 text-primary" />
+              <span>Closing Clarity</span>
             </div>
           </div>
 
@@ -341,8 +374,9 @@ function BannedHandler() {
       signOut().then(() => {
         toast({
           title: "Account Banned",
-          description: "Your account has been permanently banned from Cosmic Coach.",
-          variant: "destructive"
+          description: "Your account has been permanently banned from Closing Clarity.",
+          variant: "destructive",
+          duration: Infinity,
         });
       });
     }
@@ -358,12 +392,16 @@ function InnerRoutes() {
     <ClerkProvider
       publishableKey={clerkPubKey ?? ""}
       proxyUrl={clerkProxyUrl}
-      appearance={clerkAppearance}
+      appearance={{
+        elements: { cardBox: "shadow-none border border-border/50", card: "bg-card" },
+        layout: { socialButtonsPlacement: "bottom", shimmer: true },
+        variables: { colorPrimary: "hsl(217.2 91.2% 59.8%)" },
+      }}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
-        signIn: { start: { title: "Welcome back", subtitle: "Sign in to your Cosmic Coach account" } },
-        signUp: { start: { title: "Create your account", subtitle: "Start your free AI speech coaching journey" } },
+        signIn: { start: { title: "Welcome back", subtitle: "Sign in to your Closing Clarity account" } },
+        signUp: { start: { title: "Create your account", subtitle: "Start your Closing Clarity journey today" } },
       }}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
@@ -371,6 +409,7 @@ function InnerRoutes() {
       <QueryClientContext.Provider value={queryClient}>
         <QueryClientProvider client={queryClient}>
           <ClerkQueryClientCacheInvalidator />
+          <AuthSync />
           <BannedHandler />
           <TooltipProvider>
             <Switch>
@@ -378,11 +417,16 @@ function InnerRoutes() {
               <Route path="/sign-in/*?" component={SignInPage} />
               <Route path="/sign-up/*?" component={SignUpPage} />
               <Route path="/pricing" component={PricingPage} />
+              <Route path="/terms" component={TermsPage} />
+              <Route path="/privacy" component={PrivacyPage} />
               <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+              <Route path="/workspace" component={() => <ProtectedRoute component={Workspace} />} />
+              <Route path="/join/:token" component={() => <ProtectedRoute component={JoinTeam} />} />
               <Route path="/sessions/new" component={() => <ProtectedRoute component={NewSession} />} />
               <Route path="/sessions/:id" component={() => <ProtectedRoute component={SessionDetail} />} />
               <Route path="/sessions" component={() => <ProtectedRoute component={Sessions} />} />
               <Route path="/admin" component={() => <AdminRoute component={AdminPage} />} />
+              <Route path="/sso-callback" component={() => <AuthenticateWithRedirectCallback signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />} />
               <Route component={NotFound} />
             </Switch>
             <Toaster />

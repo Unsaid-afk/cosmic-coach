@@ -11,9 +11,9 @@ export default function SignUpPage() {
 
       <nav className="relative z-10 flex items-center justify-between px-6 py-5">
         <Link href="/">
-          <div className="flex items-center gap-2 font-bold text-lg text-primary font-mono cursor-pointer">
-            <Mic className="w-5 h-5" />
-            <span>COSMIC COACH</span>
+          <div className="flex items-center gap-2 font-bold text-xl text-primary font-mono mb-8 justify-center">
+            <Mic className="w-6 h-6" />
+            <span>CLOSING CLARITY</span>
           </div>
         </Link>
       </nav>

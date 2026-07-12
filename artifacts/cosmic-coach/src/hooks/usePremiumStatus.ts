@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
+import { customFetch } from "@workspace/api-client-react";
 
 interface UserData {
   id: string;
@@ -16,17 +17,18 @@ interface ProductRow {
 }
 
 async function fetchMe(): Promise<UserData> {
-  const resp = await fetch("/api/users/me", { credentials: "include" });
-  if (resp.status === 403) throw new Error("BANNED");
-  if (!resp.ok) throw new Error("Failed to fetch user");
-  return resp.json() as Promise<UserData>;
+  try {
+    const data = await customFetch<UserData>("/api/users/me");
+    return data;
+  } catch (err: any) {
+    if (err?.response?.status === 403) throw new Error("BANNED");
+    throw new Error("Failed to fetch user");
+  }
 }
 
 async function fetchPriceId(): Promise<string | null> {
   try {
-    const resp = await fetch("/api/billing/products", { credentials: "include" });
-    if (!resp.ok) return null;
-    const data = await resp.json() as { data: ProductRow[] };
+    const data = await customFetch<{ data: ProductRow[] }>("/api/billing/products");
     const rows = data.data ?? [];
     if (rows.length === 0) return null;
     const sorted = rows.filter((r) => r.price_id).sort((a, b) => a.unit_amount - b.unit_amount);

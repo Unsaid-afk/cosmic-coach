@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Mic, Zap, Brain, Target, Users, TrendingUp, Play, ArrowRight, Star } from "lucide-react";
+import { Mic, Zap, Brain, Target, Users, TrendingUp, Play, ArrowRight, Star, Upload, BarChart3, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const features = [
@@ -51,19 +51,47 @@ const features = [
 const testimonials = [
   { name: "Sarah Chen", role: "VC-backed Founder", text: "My investor pitch improved from a 42 to an 87 in two weeks. The audience persona feedback is insane.", stars: 5 },
   { name: "Marcus Reid", role: "Sales Director", text: "Cut my filler words by 70% after three sessions. Closed a $2M deal the week after.", stars: 5 },
-  { name: "Priya Nair", role: "TEDx Speaker", text: "I never knew my opening was so weak until Cosmic Coach told me exactly why — and how to fix it.", stars: 5 },
+  { name: "Priya Nair", role: "TEDx Speaker", text: "I never knew my opening was so weak until Closing Clarity told me exactly why — and how to fix it.", stars: 5 },
+];
+
+const howItWorks = [
+  {
+    step: "01",
+    icon: Upload,
+    title: "Upload or Paste",
+    desc: "Drop a video file or paste a YouTube / Loom / Vimeo link. We extract the audio automatically.",
+    color: "text-primary",
+    borderColor: "border-primary/30",
+  },
+  {
+    step: "02",
+    icon: Brain,
+    title: "AI Analyzes",
+    desc: "5 parallel AI calls dissect your speech — transcription, filler words, persuasion, audience simulation, and impact timeline.",
+    color: "text-secondary",
+    borderColor: "border-secondary/30",
+  },
+  {
+    step: "03",
+    icon: BarChart3,
+    title: "Get Your Report",
+    desc: "In under 60 seconds, see your full breakdown with scores, coaching tips, and a clear action plan.",
+    color: "text-emerald-400",
+    borderColor: "border-emerald-400/30",
+  },
 ];
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background pointer-events-none" />
+      <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
 
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
         <div className="flex items-center gap-2 font-bold text-xl text-primary font-mono">
           <Mic className="w-6 h-6" />
-          <span>COSMIC COACH</span>
+          <span>CLOSING CLARITY</span>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/pricing">
@@ -126,13 +154,13 @@ export default function Landing() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.3 }}
-          className="mt-16 relative"
+          className="mt-16 relative animate-float"
         >
           <div className="absolute -inset-4 bg-primary/5 rounded-2xl blur-3xl" />
-          <div className="relative rounded-2xl border border-primary/20 bg-card/60 backdrop-blur-xl p-6 shadow-[0_0_60px_rgba(0,102,255,0.1)] text-left">
+          <div className="relative rounded-2xl border border-primary/20 bg-card/60 backdrop-blur-xl p-6 shadow-[0_0_60px_rgba(0,102,255,0.1)] text-left animate-glow-pulse">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Live Analysis Preview</span>
+              <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Example Analysis Output</span>
               <div className="ml-auto px-2 py-0.5 rounded text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">READY</div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -150,6 +178,51 @@ export default function Landing() {
             </div>
           </div>
         </motion.div>
+      </section>
+
+      {/* How it Works */}
+      <section className="relative z-10 py-24 px-6 max-w-5xl mx-auto">
+        <div className="text-center mb-16">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-secondary/30 bg-secondary/5 text-xs font-mono text-secondary uppercase tracking-widest mb-4">
+              <Sparkles className="w-3 h-3" />
+              Simple Process
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4 text-foreground">
+              Three steps to a better speech.
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              No complicated setup. No lengthy onboarding. Just results.
+            </p>
+          </motion.div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {howItWorks.map(({ step, icon: Icon, title, desc, color, borderColor }, i) => (
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.15 }}
+              className="relative"
+            >
+              {i < 2 && (
+                <div className="hidden md:block absolute top-12 left-full w-6 -translate-x-3">
+                  <div className="w-full h-[1px] bg-gradient-to-r from-border to-transparent" />
+                </div>
+              )}
+              <div className={`rounded-xl border ${borderColor} bg-card/40 backdrop-blur-sm p-6 text-center hover:scale-[1.02] transition-transform`}>
+                <div className="text-[10px] font-mono text-muted-foreground/40 tracking-widest mb-4">STEP {step}</div>
+                <div className={`w-14 h-14 rounded-xl bg-background/80 border border-border/40 flex items-center justify-center mx-auto mb-4`}>
+                  <Icon className={`w-7 h-7 ${color}`} />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2 text-lg">{title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
       {/* Features */}
@@ -213,7 +286,7 @@ export default function Landing() {
 
       {/* CTA */}
       <section className="relative z-10 py-24 px-6 text-center max-w-3xl mx-auto">
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 backdrop-blur-xl p-12">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 backdrop-blur-xl p-12 animate-glow-pulse">
           <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4">
             Your next speech starts here.
           </h2>
@@ -229,15 +302,22 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-border/30 py-8 px-6 text-center">
-        <div className="flex items-center justify-center gap-2 font-mono text-xs text-muted-foreground/60 mb-2">
-          <Mic className="w-3.5 h-3.5" />
-          COSMIC COACH · AI Speech Intelligence
-        </div>
-        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground/40 font-mono">
-          <Link href="/pricing" className="hover:text-muted-foreground transition-colors">Pricing</Link>
-          <Link href="/sign-in" className="hover:text-muted-foreground transition-colors">Sign In</Link>
-          <Link href="/sign-up" className="hover:text-muted-foreground transition-colors">Sign Up</Link>
+      <footer className="relative z-10 border-t border-border/30 py-10 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground/60">
+            <Mic className="w-4 h-4 text-primary/60" />
+            <span className="font-semibold text-foreground/80">CLOSING CLARITY</span>
+            <span className="hidden sm:inline">· AI Speech Intelligence</span>
+          </div>
+          <div className="flex items-center gap-6 text-xs text-muted-foreground/50 font-mono">
+            <Link href="/pricing" className="hover:text-muted-foreground transition-colors">Pricing</Link>
+            <Link href="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
+            <Link href="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
+            <Link href="/sign-in" className="hover:text-muted-foreground transition-colors">Sign In</Link>
+          </div>
+          <div className="text-[10px] text-muted-foreground/30 font-mono">
+            © {new Date().getFullYear()} Closing Clarity. All rights reserved.
+          </div>
         </div>
       </footer>
     </div>

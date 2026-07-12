@@ -1,6 +1,7 @@
 import { pgTable, text, serial, real, integer, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { teamsTable } from "./teams";
 
 export const sessionStatusEnum = pgEnum("session_status", ["processing", "ready", "failed"]);
 export const energyLevelEnum = pgEnum("energy_level", ["low", "medium", "high", "electric"]);
@@ -8,6 +9,7 @@ export const energyLevelEnum = pgEnum("energy_level", ["low", "medium", "high", 
 export const sessionsTable = pgTable("sessions", {
   id: serial("id").primaryKey(),
   userId: text("user_id"),
+  teamId: integer("team_id").references(() => teamsTable.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   speakerName: text("speaker_name").notNull(),
   duration: real("duration").notNull().default(0),

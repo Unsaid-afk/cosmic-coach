@@ -11,10 +11,6 @@ const execFileAsync = promisify(execFile);
 const WINGET_LINKS_PATH = join(process.env.LOCALAPPDATA || "", "Microsoft", "WinGet", "Links");
 
 function getYtdlpPath() {
-  // On Windows, try the WinGet path if it exists
-  if (process.platform === "win32") {
-    return join(WINGET_LINKS_PATH, "yt-dlp.exe");
-  }
   return "yt-dlp";
 }
 
