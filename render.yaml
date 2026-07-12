@@ -1,0 +1,41 @@
+services:
+  # 1. The Backend (Node/Express API)
+  - type: web
+    name: cosmic-coach-backend
+    env: docker
+    plan: starter
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cosmic-coach-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+
+  # 2. The Frontend (React/Vite Static Site)
+  - type: web
+    name: cosmic-coach-frontend
+    env: static
+    buildCommand: npm install -g pnpm && pnpm install && pnpm --filter "@workspace/cosmic-coach" run build
+    staticPublishPath: ./artifacts/cosmic-coach/dist
+    envVars:
+      - key: VITE_API_URL
+        value: "https://cosmic-coach-backend.onrender.com"
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
+
+databases:
+  # 3. The PostgreSQL Database
+  - name: cosmic-coach-db
+    databaseName: cosmiccoach
+    user: adminuser
+    plan: free
