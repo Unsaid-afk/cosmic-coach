@@ -25,7 +25,7 @@ services:
   - type: web
     name: cosmic-coach-frontend
     env: static
-    buildCommand: npm install -g pnpm && pnpm install && pnpm --filter "@workspace/cosmic-coach" run build
+    buildCommand: pnpm install && pnpm --filter "@workspace/cosmic-coach" run build
     staticPublishPath: ./artifacts/cosmic-coach/dist
     envVars:
       - key: VITE_API_URL
