@@ -26,7 +26,11 @@ services:
     name: cosmic-coach-frontend
     env: static
     buildCommand: pnpm install && pnpm --filter "@workspace/cosmic-coach" run build
-    staticPublishPath: ./artifacts/cosmic-coach/dist
+    staticPublishPath: ./artifacts/cosmic-coach/dist/public
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         value: "https://cosmic-coach-backend.onrender.com"
