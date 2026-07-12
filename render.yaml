@@ -3,7 +3,7 @@ services:
   - type: web
     name: cosmic-coach-backend
     env: docker
-    plan: starter
+    plan: free
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL
