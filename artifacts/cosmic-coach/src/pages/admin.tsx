@@ -314,7 +314,7 @@ export default function AdminPage() {
                   {contracts.map((c) => (
                     <tr key={c.id}>
                       <td className="py-2 font-mono text-xs text-foreground/80">{c.email}</td>
-                      <td className="py-2 text-xs font-mono">${(c.pricePerMonth / 100).toFixed(2)}</td>
+                      <td className="py-2 text-xs font-mono">${((c.pricePerMonth || 0) / 100).toFixed(2)}</td>
                       <td className="py-2 text-xs font-mono">{c.sessionQuota}</td>
                       <td className="py-2 text-xs text-muted-foreground font-mono">
                         {new Date(c.createdAt).toLocaleDateString()}

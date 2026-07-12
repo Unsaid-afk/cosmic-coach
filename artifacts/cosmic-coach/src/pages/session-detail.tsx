@@ -322,7 +322,7 @@ export default function SessionDetail() {
                       <Tooltip
                         contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", fontSize: 12 }}
                         labelFormatter={(v) => `${v}s`}
-                        formatter={(v: number, name: string) => [`${(v * 100).toFixed(0)}%`, name === "energy" ? "Energy" : "Clarity"]}
+                        formatter={(v: number, name: string) => [`${((v || 0) * 100).toFixed(0)}%`, name === "energy" ? "Energy" : "Clarity"]}
                       />
                       <Area type="monotone" dataKey="energy" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#energyGrad)" filter="url(#neonGlow)" strokeWidth={2} dot={false} />
                       <Area type="monotone" dataKey="clarity" stroke="hsl(var(--secondary))" fillOpacity={0} strokeWidth={1.5} strokeDasharray="4 4" dot={false} />

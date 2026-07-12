@@ -101,7 +101,7 @@ export default function Dashboard() {
             <Activity className="h-4 w-4 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.averageScore.toFixed(1)}</div>
+            <div className="text-2xl font-bold text-foreground">{(stats.averageScore || 0).toFixed(1)}</div>
           </CardContent>
         </Card>
 
