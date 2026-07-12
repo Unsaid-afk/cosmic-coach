@@ -24,6 +24,20 @@ export default function SignUpPage() {
           path={`${basePath}/sign-up`}
           signInUrl={`${basePath}/sign-in`}
           fallbackRedirectUrl={`${basePath}/dashboard`}
+          appearance={{
+            elements: {
+              card: "bg-card/50 backdrop-blur-sm border border-primary/20 shadow-[0_0_40px_rgba(0,102,255,0.1)]",
+              headerTitle: "font-mono",
+              headerSubtitle: "font-mono text-muted-foreground",
+              formButtonPrimary: "font-mono uppercase tracking-wider",
+              socialButtonsBlockButton: "font-mono bg-background/50 border-primary/20 hover:bg-primary/10",
+              formFieldLabel: "font-mono text-xs uppercase tracking-wider text-muted-foreground",
+              formFieldInput: "font-mono bg-background/50",
+              dividerText: "font-mono text-muted-foreground",
+              footerActionText: "font-mono text-muted-foreground",
+              footerActionLink: "font-mono text-primary hover:underline"
+            }
+          }}
         />
       </div>
     </div>
