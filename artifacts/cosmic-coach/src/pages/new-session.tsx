@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Loader2, Upload, FileVideo, FileAudio, X, Zap, CheckCircle, Link2, Youtube, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getListSessionsQueryKey } from "@workspace/api-client-react";
+import { getListSessionsQueryKey, customFetch } from "@workspace/api-client-react";
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -124,18 +124,13 @@ export default function NewSession() {
 
     setIsSubmitting(true);
 
-    const handleQuotaExceeded = async (token: string | null) => {
+    const handleQuotaExceeded = async () => {
       toast({ title: "Quota Exceeded", description: "You have reached your session limit. Redirecting to billing...", variant: "destructive" });
       try {
-        const resp = await fetch("/api/billing/portal", {
+        const data = await customFetch<{ url?: string }>("/api/billing/portal", {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}) },
+          headers: { "Content-Type": "application/json" },
         });
-        if (!resp.ok) {
-          setLocation("/pricing");
-          return;
-        }
-        const data = await resp.json() as { url?: string };
         if (data.url) {
           window.location.href = data.url;
         } else {
@@ -181,24 +176,19 @@ export default function NewSession() {
       } else {
         // ── URL path ──────────────────────────────────────────────────────────
         setStage("downloading");
-        const urlToken = await getToken();
-        const resp = await fetch("/api/sessions/from-url", {
+        const urlData = await customFetch<{ id: string }>("/api/sessions/from-url", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(urlToken ? { "Authorization": `Bearer ${urlToken}` } : {}),
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: data.title, speakerName: data.speakerName, url: videoUrl.trim() }),
-        });
-        if (!resp.ok) {
-          const body = await resp.json().catch(() => ({})) as Record<string, string>;
-          if (body.error === "QUOTA_EXCEEDED") {
-            await handleQuotaExceeded(urlToken);
-            return;
+        }).catch(async (err) => {
+          if (err?.data?.error === "QUOTA_EXCEEDED" || err?.message?.includes("QUOTA_EXCEEDED")) {
+            await handleQuotaExceeded();
+            return null;
           }
-          throw new Error(body.error ?? "Failed to start analysis");
-        }
-        sessionData = await resp.json() as { id: string };
+          throw err;
+        });
+        if (!urlData) return;
+        sessionData = urlData;
         setStage("processing");
       }
 
@@ -207,8 +197,7 @@ export default function NewSession() {
       setLocation(`/sessions/${sessionData.id}`);
     } catch (err) {
       if (err instanceof Error && (err.message === "QUOTA_EXCEEDED" || err.message === "QUOTA_EXCEEDED")) {
-        const t = await getToken();
-        await handleQuotaExceeded(t);
+        await handleQuotaExceeded();
       } else {
         toast({ title: "Failed", description: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
       }

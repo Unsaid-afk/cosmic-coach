@@ -4,7 +4,7 @@ services:
     name: cosmic-coach-backend
     env: docker
     plan: free
-    healthCheckPath: /
+    healthCheckPath: /api/healthz
     envVars:
       - key: DATABASE_URL
         fromDatabase:

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { customFetch } from "@workspace/api-client-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Building2, Users, Key, Plus, ShieldCheck, Mail, Calendar, Mic } from "lucide-react";
@@ -45,22 +46,17 @@ export default function Workspace() {
   const { data, isLoading } = useQuery<TeamData>({
     queryKey: ["/api/teams/me"],
     queryFn: async () => {
-      const res = await fetch("/api/teams/me", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
+      return customFetch<TeamData>("/api/teams/me");
     }
   });
 
   const createMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await fetch("/api/teams", {
+      return customFetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
-        credentials: "include"
       });
-      if (!res.ok) throw new Error("Failed to create team");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/teams/me"] });
@@ -74,17 +70,11 @@ export default function Workspace() {
 
   const joinMutation = useMutation({
     mutationFn: async (code: string) => {
-      const res = await fetch("/api/teams/join", {
+      return customFetch("/api/teams/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ joinCode: code }),
-        credentials: "include"
       });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || "Failed to join");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/teams/me"] });
@@ -98,17 +88,11 @@ export default function Workspace() {
 
   const inviteMutation = useMutation({
     mutationFn: async (email: string) => {
-      const res = await fetch("/api/teams/invite-email", {
+      return customFetch<{ previewUrl?: string }>("/api/teams/invite-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-        credentials: "include"
       });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error || "Failed to send invite");
-      }
-      return res.json();
     },
     onSuccess: (data) => {
       toast({ 

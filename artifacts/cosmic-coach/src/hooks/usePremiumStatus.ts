@@ -21,7 +21,7 @@ async function fetchMe(): Promise<UserData> {
     const data = await customFetch<UserData>("/api/users/me");
     return data;
   } catch (err: any) {
-    if (err?.response?.status === 403) throw new Error("BANNED");
+    if (err?.status === 403) throw new Error("BANNED");
     throw new Error("Failed to fetch user");
   }
 }

@@ -24,7 +24,10 @@ import NotFound from "./pages/not-found";
 import Landing from "./pages/landing";
 import TermsPage from "./pages/terms";
 import PrivacyPage from "./pages/privacy";
+import SignInPage from "./pages/sign-in";
+import SignUpPage from "./pages/sign-up";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { usePremiumStatus } from "./hooks/usePremiumStatus";
 
 function AuthSync() {
   const { getToken } = useAuth();
@@ -44,9 +47,6 @@ function AuthSync() {
 
   return null;
 }
-import SignInPage from "./pages/sign-in";
-import SignUpPage from "./pages/sign-up";
-import { usePremiumStatus } from "./hooks/usePremiumStatus";
 
 const queryClient = new QueryClient();
 const QueryClientContext = React.createContext<QueryClient | null>(null);

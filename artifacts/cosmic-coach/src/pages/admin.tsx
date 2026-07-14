@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { customFetch } from "@workspace/api-client-react";
 import { Shield, Users, LayoutList, TrendingUp, Crown, MoreHorizontal, Edit2, Trash2, Ban } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,67 +59,47 @@ interface AdminContract {
 }
 
 async function fetchAdminStats(): Promise<AdminStats> {
-  const r = await fetch("/api/admin/stats", { credentials: "include" });
-  if (!r.ok) throw new Error("Forbidden");
-  return r.json() as Promise<AdminStats>;
+  return customFetch<AdminStats>("/api/admin/stats");
 }
 
 async function fetchAdminUsers(): Promise<AdminUser[]> {
-  const r = await fetch("/api/admin/users", { credentials: "include" });
-  if (!r.ok) throw new Error("Forbidden");
-  return r.json() as Promise<AdminUser[]>;
+  return customFetch<AdminUser[]>("/api/admin/users");
 }
 
 async function fetchAdminSessions(): Promise<AdminSession[]> {
-  const r = await fetch("/api/admin/sessions", { credentials: "include" });
-  if (!r.ok) throw new Error("Forbidden");
-  return r.json() as Promise<AdminSession[]>;
+  return customFetch<AdminSession[]>("/api/admin/sessions");
 }
 
 async function fetchAdminContracts(): Promise<AdminContract[]> {
-  const r = await fetch("/api/admin/contracts", { credentials: "include" });
-  if (!r.ok) throw new Error("Forbidden");
-  return r.json() as Promise<AdminContract[]>;
+  return customFetch<AdminContract[]>("/api/admin/contracts");
 }
 
 async function toggleUserBan(id: string) {
-  const r = await fetch(`/api/admin/users/${id}/ban`, { method: "POST", credentials: "include" });
-  if (!r.ok) throw new Error("Failed to ban");
-  return r.json();
+  return customFetch(`/api/admin/users/${id}/ban`, { method: "POST" });
 }
 
 async function deleteUser(id: string) {
-  const r = await fetch(`/api/admin/users/${id}`, { method: "DELETE", credentials: "include" });
-  if (!r.ok) throw new Error("Failed to delete user");
-  return r.json();
+  return customFetch(`/api/admin/users/${id}`, { method: "DELETE" });
 }
 
 async function editUser(data: { id: string; email: string }) {
-  const r = await fetch(`/api/admin/users/${data.id}`, {
+  return customFetch(`/api/admin/users/${data.id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: data.email }),
-    credentials: "include"
   });
-  if (!r.ok) throw new Error("Failed to edit user");
-  return r.json();
 }
 
 async function deleteSession(id: string) {
-  const r = await fetch(`/api/admin/sessions/${id}`, { method: "DELETE", credentials: "include" });
-  if (!r.ok) throw new Error("Failed to delete session");
-  return r.json();
+  return customFetch(`/api/admin/sessions/${id}`, { method: "DELETE" });
 }
 
 async function editSession(data: { id: string; title: string; speakerName: string }) {
-  const r = await fetch(`/api/admin/sessions/${data.id}`, {
+  return customFetch(`/api/admin/sessions/${data.id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title: data.title, speakerName: data.speakerName }),
-    credentials: "include"
   });
-  if (!r.ok) throw new Error("Failed to edit session");
-  return r.json();
 }
 
 export default function AdminPage() {
@@ -200,16 +181,11 @@ export default function AdminPage() {
 
   const createContractMutation = useMutation({
     mutationFn: async () => {
-      const r = await fetch("/api/admin/contracts", {
+      await customFetch("/api/admin/contracts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: contractEmail, pricePerMonth: contractPrice, sessionQuota: contractQuota }),
-        credentials: "include"
       });
-      if (!r.ok) {
-        const body = await r.json();
-        throw new Error(body.error || "Failed");
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-contracts"] });

@@ -4,6 +4,7 @@ import { Mic, CheckCircle, Zap, ArrowRight, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/react";
 import { usePremiumStatus } from "@/hooks/usePremiumStatus";
+import { customFetch } from "@workspace/api-client-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,13 +49,11 @@ export default function PricingPage() {
     }
     setLoading(true);
     try {
-      const resp = await fetch("/api/billing/checkout", {
+      const data = await customFetch<{ url?: string; error?: string }>("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ priceId }),
       });
-      const data = await resp.json() as { url?: string; error?: string };
       if (data.url) {
         window.location.href = data.url;
       } else {
@@ -70,12 +69,10 @@ export default function PricingPage() {
   const handleManageBilling = async () => {
     setLoading(true);
     try {
-      const resp = await fetch("/api/billing/portal", {
+      const data = await customFetch<{ url?: string; error?: string }>("/api/billing/portal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
       });
-      const data = await resp.json() as { url?: string; error?: string };
       if (data.url) {
         window.location.href = data.url;
       } else {
