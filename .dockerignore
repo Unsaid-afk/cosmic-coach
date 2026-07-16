@@ -1,0 +1,11 @@
+node_modules
+.git
+.env
+dist
+.replit
+.replitignore
+Dockerfile
+render.yaml
+*.log
+test-deploy/
+test-deploy-2/
