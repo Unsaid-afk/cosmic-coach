@@ -12,7 +12,7 @@ COPY artifacts/api-server/package.json ./artifacts/api-server/
 COPY artifacts/cosmic-coach/package.json ./artifacts/cosmic-coach/
 COPY lib/db/package.json ./lib/db/
 COPY lib/api-zod/package.json ./lib/api-zod/
-COPY lib/integrations/openai-ai-server/package.json ./lib/integrations/openai-ai-server/
+COPY lib/integrations-openai-ai-server/package.json ./lib/integrations-openai-ai-server/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Builder layer
