@@ -10,9 +10,14 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY artifacts/api-server/package.json ./artifacts/api-server/
 COPY artifacts/cosmic-coach/package.json ./artifacts/cosmic-coach/
+COPY artifacts/mockup-sandbox/package.json ./artifacts/mockup-sandbox/
 COPY lib/db/package.json ./lib/db/
 COPY lib/api-zod/package.json ./lib/api-zod/
+COPY lib/api-client-react/package.json ./lib/api-client-react/
+COPY lib/api-spec/package.json ./lib/api-spec/
+COPY lib/integrations-openai-ai-react/package.json ./lib/integrations-openai-ai-react/
 COPY lib/integrations-openai-ai-server/package.json ./lib/integrations-openai-ai-server/
+COPY scripts/package.json ./scripts/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Builder layer
