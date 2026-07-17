@@ -184,8 +184,11 @@ router.post("/teams/invite-email", requireAuth, async (req, res): Promise<void> 
     });
 
     // 3. Send Email via Ethereal
-    // We assume the frontend runs on localhost:5173 or window.location.origin
-    const inviteLink = `http://localhost:5173/join/${token}`;
+    // Build invite link dynamically from request headers
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost:5173";
+    const protocol = req.headers["x-forwarded-proto"] || "https";
+    const baseUrl = `${protocol}://${host}`;
+    const inviteLink = `${baseUrl}/join/${token}`;
     
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

@@ -32,7 +32,19 @@ app.use(
   cors({
     credentials: true,
     origin: (origin, callback) => {
-      callback(null, true);
+      const allowedOrigin = process.env.CORS_ORIGIN;
+      // In development or if CORS_ORIGIN is not set, allow all origins
+      if (!allowedOrigin || process.env.NODE_ENV !== "production") {
+        callback(null, true);
+        return;
+      }
+      // In production, restrict to configured origins
+      const allowed = allowedOrigin.split(",").map((o) => o.trim());
+      if (!origin || allowed.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
     },
   })
 );

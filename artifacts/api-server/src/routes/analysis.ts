@@ -1,6 +1,8 @@
 import { Router } from "express";
-import { db, sessionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, sessionsTable, usersTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
+import { requireAuth } from "../middlewares/auth.js";
+import { isAdminEmail } from "../lib/adminUtils.js";
 import type {
   AnalysisData,
   DetailedAnalysis,
@@ -163,10 +165,23 @@ async function getSessionOrFail(req: import("express").Request, res: import("exp
   if (isNaN(id)) { res.status(404).json({ error: "Not found" }); return null; }
   const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id));
   if (!session) { res.status(404).json({ error: "Not found" }); return null; }
+  // Ownership check: session must belong to the requesting user (admins bypass)
+  if (session.userId && session.userId !== req.userId) {
+    try {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!));
+      if (!isAdminEmail(user?.email)) {
+        res.status(404).json({ error: "Not found" });
+        return null;
+      }
+    } catch {
+      res.status(404).json({ error: "Not found" });
+      return null;
+    }
+  }
   return { id, session };
 }
 
-router.get("/sessions/:id/analysis", async (req, res) => {
+router.get("/sessions/:id/analysis", requireAuth, async (req, res) => {
   try {
     const result = await getSessionOrFail(req, res);
     if (!result) return;
@@ -195,7 +210,7 @@ router.get("/sessions/:id/analysis", async (req, res) => {
   }
 });
 
-router.get("/sessions/:id/waveform", async (req, res) => {
+router.get("/sessions/:id/waveform", requireAuth, async (req, res) => {
   try {
     const result = await getSessionOrFail(req, res);
     if (!result) return;
@@ -212,7 +227,7 @@ router.get("/sessions/:id/waveform", async (req, res) => {
   }
 });
 
-router.get("/sessions/:id/transcript", async (req, res) => {
+router.get("/sessions/:id/transcript", requireAuth, async (req, res) => {
   try {
     const result = await getSessionOrFail(req, res);
     if (!result) return;
@@ -229,7 +244,7 @@ router.get("/sessions/:id/transcript", async (req, res) => {
   }
 });
 
-router.get("/sessions/:id/persuasion", async (req, res) => {
+router.get("/sessions/:id/persuasion", requireAuth, async (req, res) => {
   try {
     const result = await getSessionOrFail(req, res);
     if (!result) return;
@@ -246,7 +261,7 @@ router.get("/sessions/:id/persuasion", async (req, res) => {
   }
 });
 
-router.get("/sessions/:id/audience", async (req, res) => {
+router.get("/sessions/:id/audience", requireAuth, async (req, res) => {
   try {
     const result = await getSessionOrFail(req, res);
     if (!result) return;
@@ -263,7 +278,7 @@ router.get("/sessions/:id/audience", async (req, res) => {
   }
 });
 
-router.get("/sessions/:id/impact-timeline", async (req, res) => {
+router.get("/sessions/:id/impact-timeline", requireAuth, async (req, res) => {
   try {
     const result = await getSessionOrFail(req, res);
     if (!result) return;
@@ -280,7 +295,7 @@ router.get("/sessions/:id/impact-timeline", async (req, res) => {
   }
 });
 
-router.get("/sessions/:id/detailed-analysis", async (req, res) => {
+router.get("/sessions/:id/detailed-analysis", requireAuth, async (req, res) => {
   try {
     const result = await getSessionOrFail(req, res);
     if (!result) return;

@@ -1,13 +1,17 @@
 import { Router } from "express";
 import { db, sessionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { CreateSessionBody } from "@workspace/api-zod";
+import { eq, and, desc } from "drizzle-orm";
+import { requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
 
-router.get("/sessions", async (req, res) => {
+router.get("/sessions", requireAuth, async (req, res) => {
   try {
-    const sessions = await db.select().from(sessionsTable).orderBy(sessionsTable.createdAt);
+    const sessions = await db
+      .select()
+      .from(sessionsTable)
+      .where(eq(sessionsTable.userId, req.userId!))
+      .orderBy(desc(sessionsTable.createdAt));
     const mapped = sessions.map((s) => ({
       id: String(s.id),
       title: s.title,
@@ -29,48 +33,14 @@ router.get("/sessions", async (req, res) => {
   }
 });
 
-router.post("/sessions", async (req, res) => {
+router.get("/sessions/:id", requireAuth, async (req, res): Promise<void> => {
   try {
-    const body = CreateSessionBody.parse(req.body);
-    const [session] = await db
-      .insert(sessionsTable)
-      .values({
-        title: body.title,
-        speakerName: body.speakerName,
-        duration: body.duration,
-        status: "ready",
-        overallScore: Math.floor(Math.random() * 30) + 60,
-        energyLevel: ["low", "medium", "high", "electric"][Math.floor(Math.random() * 4)] as "low" | "medium" | "high" | "electric",
-        eyeContactScore: Math.floor(Math.random() * 30) + 60,
-        confidenceScore: Math.floor(Math.random() * 30) + 60,
-        fillerWordCount: Math.floor(Math.random() * 20) + 2,
-      })
-      .returning();
-    res.status(201).json({
-      id: String(session.id),
-      title: session.title,
-      speakerName: session.speakerName,
-      duration: session.duration,
-      createdAt: session.createdAt.toISOString(),
-      status: session.status,
-      overallScore: session.overallScore,
-      energyLevel: session.energyLevel,
-      eyeContactScore: session.eyeContactScore,
-      confidenceScore: session.confidenceScore,
-      fillerWordCount: session.fillerWordCount,
-      errorMessage: session.errorMessage,
-    });
-  } catch (err) {
-    req.log.error(err);
-    res.status(400).json({ error: "Invalid request" });
-  }
-});
-
-router.get("/sessions/:id", async (req, res): Promise<void> => {
-  try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     if (isNaN(id)) { res.status(404).json({ error: "Not found" }); return; }
-    const [session] = await db.select().from(sessionsTable).where(eq(sessionsTable.id, id));
+    const [session] = await db
+      .select()
+      .from(sessionsTable)
+      .where(and(eq(sessionsTable.id, id), eq(sessionsTable.userId, req.userId!)));
     if (!session) { res.status(404).json({ error: "Not found" }); return; }
     res.json({
       id: String(session.id),
@@ -93,3 +63,4 @@ router.get("/sessions/:id", async (req, res): Promise<void> => {
 });
 
 export default router;
+

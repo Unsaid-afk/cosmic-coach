@@ -28,6 +28,7 @@ import SignInPage from "./pages/sign-in";
 import SignUpPage from "./pages/sign-up";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { usePremiumStatus } from "./hooks/usePremiumStatus";
+import { ErrorBoundary } from "./components/error-boundary";
 
 function AuthSync() {
   const { getToken } = useAuth();
@@ -386,17 +387,7 @@ function BannedHandler() {
 }
 
 function InnerRoutes() {
-  const [location, setLocation] = useLocation();
-
-  useEffect(() => {
-    const isAuthRoute = location.startsWith("/sign-in") || 
-                        location.startsWith("/sign-up") || 
-                        location.startsWith("/sso-callback") || 
-                        location.startsWith("/join/");
-    if (!isAuthRoute && location !== "/") {
-      setLocation("/");
-    }
-  }, []);
+  const [, setLocation] = useLocation();
 
   return (
     <ClerkProvider
@@ -449,9 +440,11 @@ function InnerRoutes() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
-      <InnerRoutes />
-    </WouterRouter>
+    <ErrorBoundary>
+      <WouterRouter base={basePath}>
+        <InnerRoutes />
+      </WouterRouter>
+    </ErrorBoundary>
   );
 }
 
