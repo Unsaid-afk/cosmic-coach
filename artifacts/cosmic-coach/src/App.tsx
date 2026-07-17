@@ -386,7 +386,17 @@ function BannedHandler() {
 }
 
 function InnerRoutes() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    const isAuthRoute = location.startsWith("/sign-in") || 
+                        location.startsWith("/sign-up") || 
+                        location.startsWith("/sso-callback") || 
+                        location.startsWith("/join/");
+    if (!isAuthRoute && location !== "/") {
+      setLocation("/");
+    }
+  }, []);
 
   return (
     <ClerkProvider
