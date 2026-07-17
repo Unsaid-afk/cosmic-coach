@@ -2,12 +2,12 @@
 FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
 
 # Dependencies layer
 FROM base AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY artifacts/api-server/package.json ./artifacts/api-server/
 COPY artifacts/cosmic-coach/package.json ./artifacts/cosmic-coach/
 COPY artifacts/mockup-sandbox/package.json ./artifacts/mockup-sandbox/
@@ -34,7 +34,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy workspace configuration and lockfile
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY artifacts/api-server/package.json ./artifacts/api-server/
 COPY artifacts/cosmic-coach/package.json ./artifacts/cosmic-coach/
 COPY artifacts/mockup-sandbox/package.json ./artifacts/mockup-sandbox/
